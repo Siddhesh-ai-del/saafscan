@@ -479,6 +479,141 @@ def test_active_pointer_reports_winner() -> None:
     assert name in {"cnn", "features", "rules"}
 
 
+# --- CNN serving path ---------------------------------------------------------------
+
+
+def _write_cnn_stub(models_dir, name: str = "cnn") -> None:
+    """Minimal image-input graph: global-average-pool → pad to 5 → softmax.
+
+    Accepts exactly the tensor the CNN kind is served (1, 3, 90, 360) and
+    emits a single float probability row.
+    """
+    import json
+
+    from onnx import TensorProto, helper
+
+    pad = helper.make_tensor("pad", TensorProto.FLOAT, [1, 2], [0.0, 0.0])
+    nodes = [
+        helper.make_node("GlobalAveragePool", ["x"], ["gap"]),
+        helper.make_node("Flatten", ["gap"], ["flat"], axis=1),
+        helper.make_node("Constant", [], ["z"], value=pad),
+        helper.make_node("Concat", ["flat", "z"], ["cat"], axis=1),
+        helper.make_node("Softmax", ["cat"], ["probabilities"], axis=1),
+    ]
+    graph = helper.make_graph(
+        nodes,
+        "cnn_stub",
+        [helper.make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 90, 360])],
+        [helper.make_tensor_value_info("probabilities", TensorProto.FLOAT, [1, 5])],
+    )
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 17)])
+    model.ir_version = 13  # onnxruntime 1.31 supports IR ≤ 13
+    models_dir.mkdir(parents=True, exist_ok=True)
+    (models_dir / f"{name}.onnx").write_bytes(model.SerializeToString())
+    (models_dir / f"{name}.json").write_text(
+        json.dumps(
+            {
+                "name": name,
+                "kind": "cnn",
+                "classes": ["none", "starch", "detergent", "both", "inconclusive"],
+                "temperature": 1.0,
+                "abstain_threshold": 0.6,
+            }
+        )
+    )
+
+
+def test_cnn_kind_consumes_strip_image(tmp_path, monkeypatch) -> None:
+    """kind="cnn" scores the strip crop, not the engineered feature row."""
+    import json
+
+    from saafscan.ml import runtime
+
+    _write_cnn_stub(tmp_path, "cnn")
+    (tmp_path / "active.json").write_text(json.dumps({"model": "cnn"}))
+    monkeypatch.setenv("SAAFSCAN_MODELS_DIR", str(tmp_path))
+    monkeypatch.delenv("SAAFSCAN_ML_MODEL", raising=False)
+
+    strip = np.full((90, 360, 3), 250, np.uint8)
+    verdict = runtime.classify(zones_for("starch"), strip=strip)
+    assert verdict.evidence["ml_used"] == 1.0
+    assert {k for k in verdict.evidence if k.startswith("prob_")} == {
+        "prob_none",
+        "prob_starch",
+        "prob_detergent",
+        "prob_both",
+        "prob_inconclusive",
+    }
+
+
+def test_cnn_kind_without_strip_falls_back_to_rules(tmp_path, monkeypatch) -> None:
+    """No strip image → the CNN cannot be consulted; rules answer instead.
+
+    Feeding feature rows into an image-shaped graph would crash — and
+    guessing a score instead would fabricate a verdict.
+    """
+    import json
+
+    from saafscan.classifier import classify_zones
+    from saafscan.ml import runtime
+
+    _write_cnn_stub(tmp_path, "cnn")
+    (tmp_path / "active.json").write_text(json.dumps({"model": "cnn"}))
+    monkeypatch.setenv("SAAFSCAN_MODELS_DIR", str(tmp_path))
+    monkeypatch.delenv("SAAFSCAN_ML_MODEL", raising=False)
+
+    verdict = runtime.classify(zones_for("starch"))
+    assert verdict.evidence["ml_used"] == 0.0
+    assert not any(k.startswith("prob_") for k in verdict.evidence)
+    rules = classify_zones(zones_for("starch"))
+    assert verdict.adulterant == rules.adulterant
+    assert verdict.confidence == rules.confidence
+
+
+def test_cnn_kind_with_bad_strip_shape_falls_back_to_rules(tmp_path, monkeypatch) -> None:
+    """A crop the preprocessing rejects must reach the rules, not crash."""
+    import json
+
+    from saafscan.ml import runtime
+
+    _write_cnn_stub(tmp_path, "cnn")
+    (tmp_path / "active.json").write_text(json.dumps({"model": "cnn"}))
+    monkeypatch.setenv("SAAFSCAN_MODELS_DIR", str(tmp_path))
+    monkeypatch.delenv("SAAFSCAN_ML_MODEL", raising=False)
+
+    verdict = runtime.classify(zones_for("starch"), strip=np.zeros((10, 10, 3), np.uint8))
+    assert verdict.evidence["ml_used"] == 0.0
+    assert verdict.adulterant != ""
+
+
+def test_pipeline_supplies_strip_crop_to_classifier(monkeypatch) -> None:
+    """The pipeline hands classify() the canonical crop the CNN was trained on.
+
+    The crop must be the white-balanced warp whose zone means are exactly the
+    zones the same call receives — otherwise model and rules would reason
+    about different pixels.
+    """
+    import saafscan.pipeline as pipeline_mod
+    from saafscan.roi import zones_from_strip
+    from saafscan.synthetic import render_sample
+
+    seen: dict = {}
+    real = pipeline_mod.ml_classify
+
+    def spy(zones, strip=None):
+        seen["zones"], seen["strip"] = zones, strip
+        return real(zones, strip=strip)
+
+    monkeypatch.setattr(pipeline_mod, "ml_classify", spy)
+    analysis = pipeline_mod.analyze(render_sample("starch", seed=7))
+
+    strip = seen["strip"]
+    assert strip is not None and strip.shape == (90, 360, 3)
+    for zone, rgb in zones_from_strip(strip).items():
+        assert np.allclose(rgb, seen["zones"][zone])
+    assert analysis.verdict.adulterant == "starch"
+
+
 # --- probability-output selection -------------------------------------------------
 
 

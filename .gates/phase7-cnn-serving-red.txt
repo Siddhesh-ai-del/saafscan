@@ -1,0 +1,5 @@
+Phase 7 CNN-serving RED gate — 2026-10-10T14:18:48Z
+tests/test_ml.py:611: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ml.py::test_cnn_kind_consumes_strip_image - assert 0.0 == 1.0
+FAILED tests/test_ml.py::test_pipeline_supplies_strip_crop_to_classifier - as...

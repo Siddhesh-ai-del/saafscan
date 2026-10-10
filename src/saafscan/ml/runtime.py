@@ -26,6 +26,7 @@ import numpy as np
 from saafscan.classifier import _ADVICE, CONTROL_TOLERANCE, classify_zones, zone_features
 from saafscan.ml.calibration import apply_temperature
 from saafscan.ml.features import extract_features
+from saafscan.ml.preprocess import strip_to_chw
 from saafscan.roi import ZONE_NOMINAL
 from saafscan.verdict import Verdict
 
@@ -269,6 +270,22 @@ def _predict_probs(
     return apply_temperature(probs, spec.temperature)
 
 
+def _predict_probs_cnn(session: Any, spec: ModelSpec, strip: np.ndarray) -> np.ndarray:
+    """Run the CNN on the canonical strip crop and temperature-calibrate.
+
+    The crop goes through the same NumPy-only preprocessing the model was
+    trained with (:func:`saafscan.ml.preprocess.strip_to_chw`), so training
+    and serving see byte-identical tensors. Raises when the crop has the
+    wrong shape — ``classify`` then falls back to the rule-table rather than
+    scoring a tensor the model never saw.
+    """
+    x = strip_to_chw(strip)[np.newaxis, ...].astype(np.float32)
+    input_name = session.get_inputs()[0].name
+    outputs = session.run(None, {input_name: x})
+    probs = select_probability_output(outputs, len(spec.classes), batch=1).reshape(-1)
+    return apply_temperature(probs, spec.temperature)
+
+
 def classify(
     zones: dict[str, tuple[float, float, float]], strip: np.ndarray | None = None
 ) -> Verdict:
@@ -276,14 +293,15 @@ def classify(
 
     Args:
         zones: Measured zone colours (control/starch/detergent → RGB).
-        strip: Unused for the features model; accepted so the CNN kind can share
-            the call signature. Safe to pass ``None``.
+        strip: Canonical white-balanced strip crop (90×360 RGB). Required for
+            ``kind="cnn"`` models; ignored by ``kind="features"``. When a CNN
+            is active but no usable crop is given, the rules answer — the
+            image model is never asked to score feature rows.
 
     Returns:
         A Verdict. Falls back to the rule-table whenever the ML path is
         unavailable or the input is out of distribution.
     """
-    del strip  # features model does not consume the strip image
     if os.environ.get("SAAFSCAN_CLASSIFIER", "ml") == "rules":
         return _rules_with_evidence(zones, _make_evidence(zones, None, ml_used=False))
 
@@ -303,7 +321,12 @@ def classify(
 
     try:
         session = _open_session(spec)
-        probs = _predict_probs(session, spec, zones)
+        if spec.kind == "cnn":
+            if strip is None:
+                raise ValueError("CNN model requires the strip image")
+            probs = _predict_probs_cnn(session, spec, strip)
+        else:
+            probs = _predict_probs(session, spec, zones)
     except Exception:
         # Total fallback: a broken/absent model must not break the demo.
         return _rules_with_evidence(zones, _make_evidence(zones, None, ml_used=False))

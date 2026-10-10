@@ -13,7 +13,7 @@ import numpy as np
 
 from saafscan.calib import detect_card, white_balance
 from saafscan.ml.runtime import classify as ml_classify
-from saafscan.roi import detect_strip, extract_zones, warp_strip
+from saafscan.roi import detect_strip, warp_strip, zones_from_strip
 from saafscan.verdict import Verdict
 
 MIN_SIDE = 40
@@ -53,10 +53,14 @@ def analyze(image: np.ndarray) -> Analysis:
             "Calibration card found but no reagent strip. Place the strip next to the card and retake."
         )
 
-    zones = extract_zones(image)
+    # Canonical white-balanced crop: the CNN's input, and the exact pixels the
+    # zone means below are measured from — model and rules see the same paper.
+    # (Same chain extract_zones() runs, without re-running card/strip detection.)
+    crop = warp_strip(balanced, strip_quad)
+    zones = zones_from_strip(crop)
     # ML-primary wrapper: trained model if available, else the rule-table.
     # Never fabricates a verdict — bad/ambiguous input falls back or abstains.
-    verdict = ml_classify(zones)
+    verdict = ml_classify(zones, strip=crop)
     timing_ms = (time.perf_counter() - started) * 1000.0
     return Analysis(
         verdict=verdict,
