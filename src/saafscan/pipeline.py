@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from saafscan.calib import detect_card, white_balance
-from saafscan.classifier import classify_zones
+from saafscan.ml.runtime import classify as ml_classify
 from saafscan.roi import detect_strip, extract_zones, warp_strip
 from saafscan.verdict import Verdict
 
@@ -54,7 +54,9 @@ def analyze(image: np.ndarray) -> Analysis:
         )
 
     zones = extract_zones(image)
-    verdict = classify_zones(zones)
+    # ML-primary wrapper: trained model if available, else the rule-table.
+    # Never fabricates a verdict — bad/ambiguous input falls back or abstains.
+    verdict = ml_classify(zones)
     timing_ms = (time.perf_counter() - started) * 1000.0
     return Analysis(
         verdict=verdict,
