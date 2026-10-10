@@ -304,6 +304,20 @@ def run_eval(
     return report
 
 
+def _is_model_spec(path: Path) -> bool:
+    """True for a ``<name>.json`` model spec, False for anything else.
+
+    The models dir also holds active.json and the eval report the CLI itself
+    writes (``--out models/eval_report.json``); only files carrying the spec
+    contract (kind + classes) are candidate models.
+    """
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return False
+    return isinstance(data, dict) and "kind" in data and "classes" in data
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI: evaluate every model spec in a models dir against the baseline."""
     parser = argparse.ArgumentParser(
@@ -322,9 +336,17 @@ def main(argv: list[str] | None = None) -> int:
     classes = tuple(manifest["classes"])
 
     if args.name:
-        names = [args.name]
+        names = [args.name]  # explicit request fails loudly if the artifact is absent
     else:
-        names = sorted(p.stem for p in models_dir.glob("*.json") if p.stem != "active")
+        names = []
+        for spec_file in sorted(models_dir.glob("*.json")):
+            name = spec_file.stem
+            if not _is_model_spec(spec_file):
+                continue
+            if not (models_dir / f"{name}.onnx").is_file():
+                print(f"{name}: {name}.onnx missing — skipped (retrain to regenerate)")
+                continue
+            names.append(name)
     if not names:
         print(f"no model specs found in {models_dir}")
         return 1

@@ -326,3 +326,60 @@ def test_eval_cli_writes_reproducible_report(tmp_path, capsys) -> None:
     assert report["active_model"] in {None, "features"}
     assert "delta_accuracy" in report["reports"]["features"]
     assert "features" in capsys.readouterr().out
+
+
+def test_eval_cli_ignores_its_own_report_in_models_dir(tmp_path, capsys) -> None:
+    """Re-running the documented command must be idempotent.
+
+    The report is written INTO the models dir (README: --out models/eval_report.json);
+    without a spec check the next run globs it as a model and dies looking for
+    eval_report.onnx instead of reproducing the same report.
+    """
+    from saafscan.ml.eval import main
+    from saafscan.ml.train import export_dataset, train_features_model
+
+    ds = tmp_path / "ds"
+    _tiny_dataset(ds)
+    models = tmp_path / "models"
+    train_features_model(export_dataset(ds), models_dir=models, name="features")
+
+    out = models / "eval_report.json"
+    assert main(["--dataset", str(ds), "--models", str(models), "--out", str(out)]) == 0
+    assert main(["--dataset", str(ds), "--models", str(models), "--out", str(out)]) == 0
+    report = json.loads(out.read_text())
+    assert set(report["reports"]) == {"features"}
+
+
+def test_eval_cli_skips_spec_with_missing_onnx(tmp_path, capsys) -> None:
+    """Auto-discovery must not crash on a spec whose artifact is not present.
+
+    Large artifacts (e.g. the 45 MB CNN graph) are gitignored and regenerated
+    with the documented retrain command; the report then covers every present
+    model and says which one was skipped — instead of dying on a missing file.
+    An explicit --name still fails loudly (asked-for model must be there).
+    """
+    from saafscan.ml.eval import main
+    from saafscan.ml.train import export_dataset, train_features_model
+
+    ds = tmp_path / "ds"
+    _tiny_dataset(ds)
+    models = tmp_path / "models"
+    train_features_model(export_dataset(ds), models_dir=models, name="features")
+    (models / "cnn.json").write_text(
+        json.dumps(
+            {
+                "name": "cnn",
+                "kind": "cnn",
+                "classes": list(CLASSES),
+                "temperature": 1.0,
+                "abstain_threshold": 0.6,
+            }
+        )
+    )  # spec without artifacts/cnn.onnx (gitignored until retrained)
+
+    out = models / "eval_report.json"
+    assert main(["--dataset", str(ds), "--models", str(models), "--out", str(out)]) == 0
+    report = json.loads(out.read_text())
+    assert set(report["reports"]) == {"features"}
+    printed = capsys.readouterr().out
+    assert "cnn.onnx missing" in printed and "skipped" in printed
