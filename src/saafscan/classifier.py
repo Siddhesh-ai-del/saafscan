@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from saafscan.color import delta_e, zone_features
+from saafscan.color import zone_features
 from saafscan.roi import ZONE_NOMINAL
 from saafscan.verdict import Verdict
 

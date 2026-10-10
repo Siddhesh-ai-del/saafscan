@@ -27,7 +27,7 @@ def client(tmp_path, monkeypatch):
 def _upload(client: TestClient, img: np.ndarray, name: str = "s.jpg"):
     import cv2
 
-    ok, buf = cv2.imencode(".jpg", img)
+    ok, buf = cv2.imencode(".jpg", img[:, :, ::-1])  # scenes are RGB; cv2 wants BGR
     assert ok
     return client.post("/analyze", files={"file": (name, buf.tobytes(), "image/jpeg")})
 

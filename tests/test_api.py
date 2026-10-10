@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import io
-
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -25,7 +23,8 @@ def client(tmp_path, monkeypatch):
 def _jpeg(img: np.ndarray) -> bytes:
     import cv2
 
-    ok, buf = cv2.imencode(".jpg", img)
+    # cv2 encodes channel-first-BGR; our scenes are RGB, so swap on the way in.
+    ok, buf = cv2.imencode(".jpg", img[:, :, ::-1])
     assert ok
     return buf.tobytes()
 
@@ -33,7 +32,7 @@ def _jpeg(img: np.ndarray) -> bytes:
 def _png(img: np.ndarray) -> bytes:
     import cv2
 
-    ok, buf = cv2.imencode(".png", img)
+    ok, buf = cv2.imencode(".png", img[:, :, ::-1])
     assert ok
     return buf.tobytes()
 

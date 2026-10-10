@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from saafscan.synthetic import ADULTERANTS, render_sample, render_random_photo
+from saafscan.synthetic import ADULTERANTS, render_random_photo, render_sample
 
 
 @pytest.fixture(scope="session")

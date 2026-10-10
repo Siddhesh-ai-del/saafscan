@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 import pytest
 
 from saafscan.classifier import classify, classify_zones
 from saafscan.color import delta_e, rgb_to_lab, zone_features
 from saafscan.verdict import ADULTERANTS, Verdict
-
 
 # --- colour primitives -----------------------------------------------------
 
@@ -57,7 +58,7 @@ def test_verdict_is_immutable_and_serialisable() -> None:
     v = Verdict(
         adulterant="starch", confidence=0.93, severity="moderate", advice="Avoid.", evidence={}
     )
-    with pytest.raises(Exception):
+    with pytest.raises(dataclasses.FrozenInstanceError):
         v.adulterant = "none"  # type: ignore[misc]
     data = v.to_dict()
     assert data["adulterant"] == "starch"
