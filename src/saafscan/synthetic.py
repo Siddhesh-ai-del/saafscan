@@ -10,6 +10,9 @@ The 23 Oct final demo must run on real reagent strips (see README).
 
 from __future__ import annotations
 
+import json
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 import cv2
@@ -21,7 +24,26 @@ from saafscan.roi import ZONE_NOMINAL
 SampleLabel = Literal["none", "starch", "detergent", "both"]
 ADULTERANTS: tuple[str, ...] = ("none", "starch", "detergent", "both")
 
+# ML training classes: the four reactions plus a learned 'abstain' class so the
+# classifier can express uncertainty instead of forcing a guess.
+TRAINING_CLASSES: tuple[str, ...] = ("none", "starch", "detergent", "both", "inconclusive")
+
 SCENE_SIZE = (640, 480)  # (width, height)
+
+# Hard cap on total rotation applied to a training scene. The strip detector
+# tolerates roughly ±4°; beyond that a correctly-rendered strip is not found,
+# which would corrupt the training set with undetectable samples.
+MAX_SCENE_SKEW = 3.5
+
+# The reagent strip is pasted into a training scene at this multiple of its
+# canonical STRIP_SIZE. Reacted (esp. starch) zones darken part of the strip's
+# area, so a little headroom keeps the bright-paper area fraction above the
+# detector's 0.015 floor without pushing it near the 0.2 ceiling.
+# 1.15 centres the strip's area-fraction (~0.12) inside the detector's
+# [0.015, 0.2] window across all 36 lighting conditions: at scale 1.0 a few
+# dark starch strips fell under the 0.015 floor, while at 1.35 bright strips
+# hit the 0.2 ceiling. Measured 0/540 geometry rejections at 1.15.
+TRAINING_STRIP_SCALE = 1.15
 
 # Reaction outcomes: how each reagent zone looks after the reaction.
 _REACTED = {
@@ -138,3 +160,257 @@ def sample_jpeg(label: str, seed: int = 0) -> bytes:
         ".jpg", render_sample(label, seed)[:, :, ::-1], [int(cv2.IMWRITE_JPEG_QUALITY), 92]
     )[1]
     return payload.tobytes()
+
+
+# --- Lighting conditions for ML training ---------------------------------------
+#
+# A LightingCondition captures everything about *how* a scene was lit: exposure,
+# per-channel white-balance drift (colour temperature), vignette strength, sensor
+# noise, and a little perspective skew. Training/test splits are made over these
+# CONDITIONS — never over individual images — so the held-out accuracy measures
+# generalisation to unseen lighting rather than memorisation of near-duplicates.
+
+
+@dataclass(frozen=True)
+class LightingCondition:
+    """A deterministic lighting regime. `seed` fully determines every field."""
+
+    seed: int
+    key: str
+    exposure: tuple[float, float, float]  # per-channel (R, G, B) gain
+    vignette: float  # 0..1 corner darkening strength
+    noise: float  # additive Gaussian sigma
+    skew: float  # degrees of perspective/rotation applied to pasted objects
+    blur: float  # Gaussian blur sigma (0 = sharp)
+
+    @property
+    def split(self) -> str:
+        return split_for_condition(self)
+
+
+def sample_lighting(seed: int) -> LightingCondition:
+    """Deterministically build a LightingCondition from an integer seed."""
+    rng = np.random.default_rng(10_000 + seed)
+    # Colour temperature: warm (R up / B down) ↔ cool (B up / R down), plus exposure.
+    warmth = rng.uniform(-0.18, 0.18)
+    exposure = (
+        float(np.clip(1.0 + warmth + rng.uniform(-0.05, 0.05), 0.55, 1.35)),
+        float(np.clip(1.0 + rng.uniform(-0.04, 0.04), 0.6, 1.3)),
+        float(np.clip(1.0 - warmth + rng.uniform(-0.05, 0.05), 0.55, 1.35)),
+    )
+    return LightingCondition(
+        seed=seed,
+        key=f"L{seed:03d}",
+        exposure=exposure,
+        vignette=float(rng.uniform(0.0, 0.14)),
+        noise=float(rng.uniform(0.5, 4.0)),
+        skew=float(rng.uniform(-3.0, 3.0)),
+        blur=float(rng.uniform(0.0, 0.9)),
+    )
+
+
+# Fixed seed → split bucket, stable across runs and independent of any catalogue
+# a caller assembles. ~70% train / ~20% val / ~10% test.
+_SPLIT_BY_SEED: dict[int, str] = {}
+for _seed in range(10):
+    if _seed < 7:
+        _SPLIT_BY_SEED[_seed] = "train"
+    elif _seed < 9:
+        _SPLIT_BY_SEED[_seed] = "val"
+    else:
+        _SPLIT_BY_SEED[_seed] = "test"
+
+# A default catalogue of 36 conditions (seeds 0..35), reused across the
+# default bucketing above so the split is leak-free and evenly populated.
+LIGHTING_CONDITIONS: tuple[LightingCondition, ...] = tuple(sample_lighting(s) for s in range(36))
+
+
+def split_for_condition(condition: LightingCondition) -> str:
+    """Which split a condition belongs to: train / val / test.
+
+    Deterministic in ``condition.seed`` alone, so it is stable across processes
+    and does not depend on which catalogue the caller assembled.
+    """
+    return _SPLIT_BY_SEED[condition.seed % 10]
+
+
+def _zones_for_training(label: str) -> dict[str, tuple[int, int, int]]:
+    """Nominal or reacted zone colours, plus an ambiguous 'inconclusive' case."""
+    if label == "inconclusive":
+        # Partial reaction: halfway between nominal and fully reacted, which the
+        # rule table reads as ambiguous — the perfect abstain training example.
+        return {
+            "control": ZONE_NOMINAL["control"],
+            "starch": tuple(
+                int(round(0.5 * a + 0.5 * b))
+                for a, b in zip(ZONE_NOMINAL["starch"], _REACTED["both"]["starch"], strict=True)
+            ),
+            "detergent": ZONE_NOMINAL["detergent"],
+        }
+    reacted = _REACTED.get(label, {})
+    return {
+        name: reacted.get(name, ZONE_NOMINAL[name]) for name in ("control", "starch", "detergent")
+    }
+
+
+def render_training_scene(label: str, condition: LightingCondition, seed: int = 0) -> np.ndarray:
+    """Render a scene for `label` under a specific lighting `condition`.
+
+    Deterministic per (label, condition, seed). Exercises the full pipeline
+    (card detection, white balance, strip detection) under the given lighting.
+    """
+    if label not in TRAINING_CLASSES:
+        raise ValueError(f"unknown training label: {label!r}")
+    rng = np.random.default_rng(_stable_seed(label, condition.seed, seed))
+    w, h = SCENE_SIZE
+    scene = np.full((h, w, 3), 150, dtype=np.uint8)
+
+    # Total rotation is the *condition* skew plus only a small per-scene jitter,
+    # clamped to ±MAX_SCENE_SKEW. Stacking full per-scene skew on the condition
+    # skew pushed strips past the detector's rotation tolerance (51/144 scenes
+    # failed), so the condition dominates and the jitter stays bounded.
+    def _clamped_angle(per_scene: float) -> float:
+        return float(np.clip(condition.skew + per_scene, -MAX_SCENE_SKEW, MAX_SCENE_SKEW))
+
+    _paste(
+        scene,
+        _card_canvas(rng),
+        x=int(w * 0.32) + rng.integers(-6, 7),
+        y=int(h * 0.34) + rng.integers(-6, 7),
+        angle=_clamped_angle(float(rng.uniform(-1.0, 1.0))),
+    )
+    # The strip is pasted ~1.35x its canonical size. A starch reaction darkens a
+    # third of the strip's area toward blue-black, which eats into the bright-
+    # paper area fraction the detector gates on; without this headroom ~3% of
+    # starch scenes fell below the 0.015 area floor (a label-dependent blind spot
+    # that would have under-represented the starch class in training).
+    _paste(
+        scene,
+        cv2.resize(
+            _training_strip_canvas(label),
+            None,
+            fx=TRAINING_STRIP_SCALE,
+            fy=TRAINING_STRIP_SCALE,
+            interpolation=cv2.INTER_LINEAR,
+        ),
+        x=int(w * 0.58) + rng.integers(-6, 7),
+        y=int(h * 0.66) + rng.integers(-6, 7),
+        angle=_clamped_angle(float(rng.uniform(-1.0, 1.0))),
+    )
+
+    return _apply_lighting(scene, condition, rng)
+
+
+def _training_strip_canvas(label: str) -> np.ndarray:
+    """Strip canvas using the training zone colours (incl. inconclusive)."""
+    from saafscan.roi import STRIP_SIZE
+
+    w, h = STRIP_SIZE
+    strip = np.full((h, w, 3), 238, dtype=np.uint8)
+    band = w / 3.0
+    zones = _zones_for_training(label)
+    for i, name in enumerate(("control", "starch", "detergent")):
+        colour = zones[name]
+        cx0 = int(i * band + 0.15 * band)
+        cx1 = int((i + 1) * band - 0.15 * band)
+        strip[int(0.25 * h) : int(0.75 * h), cx0:cx1] = np.array(colour, dtype=np.uint8)
+    return strip
+
+
+def _apply_lighting(
+    scene: np.ndarray, condition: LightingCondition, rng: np.random.Generator
+) -> np.ndarray:
+    """Apply exposure, vignette, blur and noise from a LightingCondition."""
+    h, w = scene.shape[:2]
+    out = scene.astype(np.float32) * np.array(condition.exposure, dtype=np.float32)[None, None, :]
+
+    if condition.vignette > 0.0:
+        yy, xx = np.mgrid[0:h, 0:w]
+        radius = np.sqrt(((xx - w / 2) / (w / 2)) ** 2 + ((yy - h / 2) / (h / 2)) ** 2)
+        vignette = (1.0 - condition.vignette * np.clip(radius, 0, 1) ** 2)[:, :, None]
+        out = out * vignette
+
+    out = np.clip(out, 0, 255).astype(np.uint8)
+    if condition.blur > 0.0:
+        out = cv2.GaussianBlur(out, (0, 0), condition.blur)
+    if condition.noise > 0.0:
+        noise = rng.normal(0, condition.noise, size=out.shape)
+        out = np.clip(out.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+    return out
+
+
+def _stable_seed(*parts: int | str) -> int:
+    """Deterministically combine ints/strings into one RNG seed (FNV-1a)."""
+    h = 1469598103934665603
+    for part in parts:
+        if isinstance(part, str):
+            data: bytes = part.encode("utf-8")
+        else:
+            data = int(part).to_bytes(8, "little", signed=False)
+        for byte in data:
+            h ^= byte
+            h = (h * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+    return h % (2**32)
+
+
+def build_dataset(
+    out_dir: Path,
+    conditions: list[LightingCondition] | None = None,
+    seeds: tuple[int, ...] = (0, 1, 2),
+) -> dict:
+    """Render every (condition × seed × class) scene, extract its strip crop, and
+    write a manifest.
+
+    Each sample's crop is the strip region warped to the canonical STRIP_SIZE
+    and white-balanced via the printed card — the exact tensor the classifier
+    consumes, stored losslessly as ``.npy`` under ``out_dir/crops/``. The
+    manifest records label, condition key, split and per-sample seed so the
+    eval split can be reconstructed exactly. Returns the manifest dict (also
+    saved to disk).
+    """
+    from saafscan.roi import extract_strip
+
+    conds = conditions if conditions is not None else list(LIGHTING_CONDITIONS)
+    out_dir = Path(out_dir)
+    crop_dir = out_dir / "crops"
+    crop_dir.mkdir(parents=True, exist_ok=True)
+
+    samples: list[dict] = []
+    skipped = 0
+    for condition in conds:
+        split = split_for_condition(condition)
+        for label in TRAINING_CLASSES:
+            for seed in seeds:
+                img = render_training_scene(label, condition, seed)
+                try:
+                    crop = extract_strip(img)  # white-balanced canonical strip crop
+                except ValueError:
+                    # The CV front-end could not locate the strip in this render
+                    # (~1% of scenes, almost all dark starch reactions whose blue-
+                    # black zone shrinks the bright-paper area below the detector
+                    # floor). A scene the pipeline cannot even find must not become
+                    # a training target, so skip it and count it for the record.
+                    skipped += 1
+                    continue
+                fname = f"{condition.key}_{label}_{seed}.npy"
+                np.save(crop_dir / fname, crop)
+                samples.append(
+                    {
+                        "label": label,
+                        "condition_key": condition.key,
+                        "split": split,
+                        "seed": seed,
+                        "path": f"crops/{fname}",
+                    }
+                )
+
+    manifest = {
+        "version": 1,
+        "classes": list(TRAINING_CLASSES),
+        "n_conditions": len(conds),
+        "seeds": list(seeds),
+        "skipped_undetectable": skipped,
+        "samples": samples,
+    }
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return manifest

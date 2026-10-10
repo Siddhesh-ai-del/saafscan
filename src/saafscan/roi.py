@@ -95,3 +95,18 @@ def extract_zones(image: np.ndarray) -> dict[str, tuple[float, float, float]]:
     if strip_quad is None:
         raise ValueError("no reagent strip detected")
     return zones_from_strip(warp_strip(balanced, strip_quad))
+
+
+def extract_strip(image: np.ndarray) -> np.ndarray:
+    """Full chain: white-balance → strip detection → canonical strip crop.
+
+    Returns the perspective-warped, white-balanced strip at STRIP_SIZE — the
+    exact tensor the classifier consumes. Raises ValueError when no strip (or
+    card) can be found.
+    """
+    quad = detect_card(image)
+    balanced = white_balance(image, quad) if quad is not None else image
+    strip_quad = detect_strip(balanced)
+    if strip_quad is None:
+        raise ValueError("no reagent strip detected")
+    return warp_strip(balanced, strip_quad)

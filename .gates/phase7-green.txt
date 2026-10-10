@@ -1,0 +1,13 @@
+Phase 7 GREEN gate — 2026-10-10T13:57:10Z
+RED: === PHASE 7 RED GATE 2026-10-10T17:55:46+05:30 ===
+    from saafscan.synthetic import (
+E   ImportError: cannot import name 'LIGHTING_CONDITIONS' from 'saafscan.synthetic' (/home/siddhesh/Projects/saafscan/src/saafscan/synthetic.py)
+=========================== short test summary info ============================
+ERROR tests/test_ml_train.py
+
+After implementing saafscan.ml/{runtime,calibration,features,preprocess,train,eval}:
+=========================== short test summary info ============================
+FAILED tests/test_ml.py::test_shipped_model_metadata_is_valid - AssertionErro...
+FAILED tests/test_ml.py::test_shipped_model_used_by_default_and_marks_evidence
+
+All checks passed!

@@ -14,6 +14,8 @@ data/*.db
 data/*.sqlite3
 data/uploads/
 data/reports/
+# Phase 7 training dataset (rendered crops + manifest; regenerable via documented command)
+data/trainset/
 *.log
 
 # Local screenshots source (kept small, committed deliberately)
