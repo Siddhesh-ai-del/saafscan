@@ -1,0 +1,118 @@
+# SaafScan
+
+**10-second adulterant detection using any phone camera.** Tech4Food 2026 · theme **Detect**.
+
+Dip the printed reagent strip into a sample → photograph it against the printed colour
+calibration card → SaafScan auto-detects the strip, corrects lighting and perspective,
+measures each reaction zone, and returns **adulterant type + confidence + severity** in
+well under 10 seconds. Fully offline. Evidence is logged to a local append-only store and
+can be exported as a PDF + QR report.
+
+> **Prototype status.** This repository is the Round-1 prototype. Colour thresholds are
+> validated against **synthetic** reagent scenes. See
+> [Physical kit for 23 Oct](#physical-kit-for-23-oct) — the final demo must run on real
+> reagent strips.
+
+## Quickstart (cold start = one command)
+
+```bash
+bash start_demo.sh
+```
+
+Then open **http://127.0.0.1:8000**.
+
+- **Live camera** (where the browser allows it) or **file upload** of a strip photo.
+- **Demo mode**: buttons render the three synthetic samples (`pure` / `starch` /
+  `detergent`) and push them through the *real* HTTP pipeline — this is the rehearsal and
+  Round-1 screenshot path.
+- **History** shows the evidence log; every entry exports a **PDF + QR report**.
+
+Manual startup:
+
+```bash
+uv venv --python 3.12 .venv
+uv sync --python .venv/bin/python
+.venv/bin/uvicorn saafscan.api:app --host 127.0.0.1 --port 8000
+```
+
+## How it works
+
+```
+phone camera / upload
+   → calibration card detection (black-bordered quad, perspective warp)
+   → white-balance correction anchored on printed white/grey/black patches
+   → strip detection (elongated bright quad, perspective warp)
+   → reaction-zone colour extraction (control · starch · detergent)
+   → ΔE vs printed nominal references → classifier
+   → verdict {adulterant, confidence, severity, advice, evidence}
+   → append-only SQLite evidence log → PDF + QR report
+```
+
+Failure modes are explicit:
+
+- **No calibration card** → rejected with *"This does not appear to be a SaafScan test image"* (HTTP 422), never a fabricated verdict.
+- **Ambiguous zone colours** → verdict `inconclusive` with confidence ≤ 0.5.
+- **Oversized / non-image / empty uploads** → HTTP 422/413, no evidence entry created.
+
+## Development
+
+```bash
+.venv/bin/pytest --cov=saafscan --cov-report=term-missing   # ≥80% gate
+.venv/bin/ruff check src tests                                # lint gate
+.venv/bin/python -m pytest tests/test_e2e.py                 # demo gauntlet
+```
+
+Layout:
+
+| Path | Role |
+|---|---|
+| `src/saafscan/calib.py` | card detection, perspective warp, white-balance |
+| `src/saafscan/roi.py` | strip detection, zone extraction |
+| `src/saafscan/color.py` | ΔE / Lab colour primitives (pure functions) |
+| `src/saafscan/classifier.py` | rules → `Verdict` (incl. `inconclusive`) |
+| `src/saafscan/verdict.py` | immutable `Verdict` model |
+| `src/saafscan/pipeline.py` | orchestration + `PipelineError` |
+| `src/saafscan/evidence.py` | append-only SQLite store (no update/delete API) |
+| `src/saafscan/report.py` | PDF + QR export |
+| `src/saafscan/synthetic.py` | deterministic synthetic demo scenes |
+| `src/saafscan/api.py` | FastAPI app + static SPA |
+| `frontend/` | single-page UI (camera, verdict, history, report) |
+| `tests/` | TDD suites incl. `test_e2e.py` demo gauntlet |
+| `screenshots/` | Round-1 deck images |
+
+## Physical kit for 23 Oct
+
+> ⚠️ **Synthetic demo mode is for Round-1 screenshots and dry-run rehearsal only.**
+> The **23 Oct final at PCCOE must run on real reagent strips** with real samples.
+> The synthetic path exists so the UI, pipeline, latency and screenshots can be built and
+> rehearsed before the consumables arrive — it is **not** the demo.
+
+Procurement list (non-code items the live demo needs):
+
+| # | Item | Purpose | Notes |
+|---|---|---|---|
+| 1 | **Iodine solution** (tincture/Lugol's, dilute) | starch test — blue-black complex | pharmacy / lab supplier; keep away from eyes; carry in a sealed small bottle |
+| 2 | **Methylene blue** solution | detergent test — decolourisation | lab chemical supplier; small quantity only |
+| 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut ≈ 8×80 mm; ~20 strips for the day |
+| 4 | **Printed colour calibration card** | white-balance + ΔE reference | print on matte photo paper, never glossy (glare breaks detection); ≥2 spares |
+| 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 23 Oct in labelled cups; bring iodine/starch control |
+| 6 | **Second phone (backup)** | camera failure fallback | pre-tested with the app before leaving |
+| 7 | Extra: zip bags, dropper/pipette, gloves, printed verdict QR card, power bank | logistics | demo hygiene + 3-hour buffer |
+
+**Also carry:** a recorded demo video as fallback, laptop with `.venv` pre-built (offline),
+and a printed one-page verdict sample for judges who don't scan QR.
+
+## Security & privacy
+
+- No personal data leaves the machine; telemetry: none.
+- Evidence store is local SQLite, append-only (no update/delete API by design).
+- Uploads are size- and type-validated at the boundary; failures return structured errors
+  (no stack traces to clients).
+
+## License
+
+MIT (prototype; not a certified food-safety device — see DISCLAIMER below).
+
+**DISCLAIMER:** SaafScan is a student prototype for educational demonstration. It is not a
+certified diagnostic or food-testing device. Do not use it as the sole basis for consuming
+or discarding food.

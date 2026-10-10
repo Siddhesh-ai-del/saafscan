@@ -1,0 +1,20 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Runtime data
+data/*.db
+data/*.sqlite3
+data/uploads/
+data/reports/
+*.log
+
+# Local screenshots source (kept small, committed deliberately)
+# (screenshots/ IS committed — needed for the Round 1 deck)

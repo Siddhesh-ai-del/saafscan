@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SaafScan — 10-Second Adulterant Detection</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◉</span>
+      <div>
+        <h1>SaafScan</h1>
+        <p class="tagline">10-second adulterant detection · any phone camera · offline</p>
+      </div>
+    </div>
+    <div class="status" id="status" data-state="checking">checking…</div>
+  </header>
+
+  <main>
+    <!-- CAPTURE -->
+    <section class="panel" id="capture-panel">
+      <h2>1 · Capture</h2>
+      <div class="capture-row">
+        <video id="video" playsinline autoplay muted></video>
+        <canvas id="canvas" hidden></canvas>
+        <div class="drop" id="drop">
+          <p><strong>Drop a strip photo</strong> or</p>
+          <label class="btn primary">
+            Upload image
+            <input type="file" id="file-input" accept="image/*" hidden />
+          </label>
+          <p class="hint" id="camera-hint">Camera: <span id="camera-state">initialising…</span></p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="snap" disabled>📸 Capture &amp; analyse</button>
+        <button class="btn" id="flip" disabled>Switch camera</button>
+      </div>
+
+      <div class="demo">
+        <h3>Demo mode <span class="pill">synthetic · rehearsal only</span></h3>
+        <p class="hint">Runs the real pipeline on generated strips — for Round-1 screenshots
+          and dry runs. The 23 Oct final uses <strong>real reagent strips</strong>.</p>
+        <div class="demo-row">
+          <button class="btn demo" data-sample="none">🥛 Pure</button>
+          <button class="btn demo" data-sample="starch">🧪 Starch</button>
+          <button class="btn demo" data-sample="detergent">🧼 Detergent</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VERDICT -->
+    <section class="panel hidden" id="verdict-panel">
+      <h2>2 · Verdict</h2>
+      <div id="verdict-card" class="verdict">
+        <div class="verdict-head">
+          <span class="verdict-chip" id="v-chip">—</span>
+          <span class="verdict-conf" id="v-conf">—</span>
+        </div>
+        <div class="meter"><div class="meter-fill" id="v-meter"></div></div>
+        <p class="verdict-sev">Severity: <strong id="v-sev">—</strong></p>
+        <p class="verdict-advice" id="v-advice">—</p>
+        <details>
+          <summary>Colour evidence (ΔE vs printed reference)</summary>
+          <pre id="v-evidence"></pre>
+        </details>
+        <div class="actions">
+          <a class="btn primary" id="v-report" href="#">⬇ Export PDF + QR report</a>
+          <button class="btn" id="v-again">Analyse another</button>
+        </div>
+        <p class="hint" id="v-latency"></p>
+      </div>
+      <p class="error hidden" id="v-error"></p>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="panel" id="history-panel">
+      <h2>3 · Evidence log <button class="btn small" id="refresh">refresh</button></h2>
+      <div id="history" class="history"><p class="hint">No analyses yet.</p></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>SaafScan prototype · Tech4Food 2026 · <strong>not a certified testing device</strong></p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
