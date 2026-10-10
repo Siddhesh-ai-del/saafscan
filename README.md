@@ -80,6 +80,41 @@ Layout:
 | `tests/` | TDD suites incl. `test_e2e.py` demo gauntlet |
 | `screenshots/` | Round-1 deck images |
 
+### Model training & evaluation (Phase 7)
+
+The served classifier is **ML-primary** with the rule-table always reachable as
+fallback. Two candidates were trained on the same lighting-split dataset and
+compared on the **held-out-lighting** split (the manifest decides splits by
+lighting condition, never by random image):
+
+| Model | Train command | Held-out acc | Coverage | Δ vs rules |
+|---|---|---|---|---|
+| **A — 12 colour/ΔE features → GBC (ships default)** | `scripts/train_features.py` | 1.000 | 0.800 | +0.000 |
+| B — ResNet18 finetune, AMP/CUDA | `scripts/train_cnn.py` | 1.000 | 0.800 | +0.000 |
+
+They tie on every measured metric (accuracy, coverage, confusion, full
+accuracy-vs-coverage curve); A wins the documented tie-breaks: abstention
+threshold **0.55 vs 0.999** (operating margin under real-phone shift),
+temperature **1.21 vs 0.81** (softening vs sharpening), and **179 KB vs 45 MB**
+artifacts. B stays servable behind `SAAFSCAN_ML_MODEL=cnn`.
+
+```bash
+.venv/bin/python scripts/train_features.py                  # Model A (+ dataset render, CPU ~15 s)
+python scripts/train_cnn.py                                 # Model B (needs torch+CUDA; --cpu works)
+.venv/bin/python -m saafscan.ml.eval --dataset data/trainset \
+    --models models --out models/eval_report.json           # both models vs the rule-table baseline
+
+SAAFSCAN_ML_MODEL=cnn .venv/bin/pytest                       # serve Model B instead
+SAAFSCAN_CLASSIFIER=rules .venv/bin/pytest                   # pure rule-table fallback
+```
+
+`data/trainset/` (51 MB) and `models/cnn.onnx` (45 MB) are gitignored as
+regenerable — first Model B run needs `uv pip install --target .mltools onnx`
+(for the export gate). Temperature scaling, the abstention threshold (low
+confidence → `inconclusive`, never a fabricated verdict) and every held-out
+number come from `saafscan.ml.calibration`, shared by both trainers, so the
+delta is computed by identical code.
+
 ## Physical kit for 23 Oct
 
 > ⚠️ **Synthetic demo mode is for Round-1 screenshots and dry-run rehearsal only.**

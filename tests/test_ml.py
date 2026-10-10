@@ -164,6 +164,31 @@ def test_abstention_metrics_counts_abstentions_as_inconclusive() -> None:
     assert e["accuracy"] == 0.0 and e["coverage"] == 0.0 and e["confusion"] == []
 
 
+def test_accuracy_and_nll_scoring() -> None:
+    """Checkpoint/report scoring: accuracy first, NLL as the tie-break.
+
+    The CNN trainer selects its shipped epoch with this pair (max accuracy,
+    then lowest NLL) — the tie-break that actually decided which weights were
+    exported — so its semantics are pinned here, torch-free.
+    """
+    from saafscan.ml.calibration import accuracy_and_nll
+
+    probs = np.array([[0.9, 0.1], [0.4, 0.6], [0.5, 0.5]])
+    y = np.array([0, 1, 1])  # row 0 correct, row 1 correct, row 2 argmaxes to 0
+    acc, nll = accuracy_and_nll(probs, y)
+    assert acc == pytest.approx(2 / 3)
+    assert nll > 0.0
+
+    # Same accuracy, sharper on the right answers → strictly lower NLL.
+    sharp = accuracy_and_nll(np.array([[0.9, 0.1], [0.1, 0.9]]), np.array([0, 1]))
+    soft = accuracy_and_nll(np.array([[0.6, 0.4], [0.4, 0.6]]), np.array([0, 1]))
+    assert sharp[0] == soft[0] and sharp[1] < soft[1]
+
+    # Empty split → (0.0, inf): "no evidence yet" beats any real score once
+    # inverted, and never yields NaN in JSON reports.
+    assert accuracy_and_nll(np.empty((0, 2)), np.empty(0, np.int64)) == (0.0, float("inf"))
+
+
 def test_confusion_matrix_is_counts_over_classes() -> None:
     from saafscan.ml.calibration import confusion_matrix
 

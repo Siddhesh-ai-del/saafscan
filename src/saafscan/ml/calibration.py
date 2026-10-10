@@ -242,6 +242,31 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> 
     return cm
 
 
+def accuracy_and_nll(probs: np.ndarray, labels: np.ndarray) -> tuple[float, float]:
+    """Mean accuracy and negative log-likelihood of a probability matrix.
+
+    The checkpoint pair used for model selection (see ``scripts/train_cnn.py``):
+    pick the highest accuracy, break ties with the lowest NLL, so the epoch
+    that sharpens the *right* answers wins over one that merely repeats them.
+
+    Args:
+        probs: Shape (n, n_classes), raw or temperature-calibrated.
+        labels: Shape (n,) true class indices.
+
+    Returns:
+        ``(accuracy, nll)``; ``(0.0, inf)`` on an empty split — no evidence
+        beats every real score once inverted, and never NaN (a NaN would
+        silently poison checkpoint comparisons and JSON reports).
+    """
+    probs = np.asarray(probs, dtype=np.float64)
+    labels = np.asarray(labels, dtype=np.int64)
+    if len(labels) == 0:
+        return 0.0, float("inf")
+    acc = float((probs.argmax(axis=1) == labels).mean())
+    picked = np.clip(probs[np.arange(len(labels)), labels], 1e-9, 1.0)
+    return acc, float(-np.log(picked).mean())
+
+
 def abstention_metrics(
     probs: np.ndarray,
     labels: np.ndarray,

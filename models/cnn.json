@@ -1,0 +1,68 @@
+{
+  "name": "cnn",
+  "kind": "cnn",
+  "backend": "torch",
+  "model": "resnet18 (ImageNet pretrained) finetune, AMP=True",
+  "classes": [
+    "none",
+    "starch",
+    "detergent",
+    "both",
+    "inconclusive"
+  ],
+  "temperature": 0.811480989027983,
+  "abstain_threshold": 0.999,
+  "n_train": 400,
+  "n_val": 89,
+  "n_test": 45,
+  "epochs": 30,
+  "batch": 32,
+  "seed": 0,
+  "device": "cuda",
+  "trained_at": "2026-10-10T14:57:15+00:00",
+  "metrics": {
+    "held_out_lighting": {
+      "n": 45,
+      "accuracy": 1.0,
+      "coverage": 0.8,
+      "abstained": 9,
+      "confusion": [
+        [
+          9,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          9,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          9,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          9,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          9
+        ]
+      ]
+    }
+  }
+}

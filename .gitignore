@@ -16,6 +16,10 @@ data/uploads/
 data/reports/
 # Phase 7 training dataset (rendered crops + manifest; regenerable via documented command)
 data/trainset/
+# Phase 7 export toolchain for the GPU env (regenerable: uv pip install --target .mltools onnx)
+.mltools/
+# Model B artifact — 45 MB, regenerate with scripts/train_cnn.py (spec JSON stays committed)
+models/cnn.onnx
 *.log
 
 # Local screenshots source (kept small, committed deliberately)
