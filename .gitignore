@@ -24,3 +24,11 @@ models/cnn.onnx
 
 # Local screenshots source (kept small, committed deliberately)
 # (screenshots/ IS committed — needed for the Round 1 deck)
+
+# Round 1 deck build environment and intermediate renders
+deck/.venv/
+deck/render/
+
+# LibreOffice lock files — never commit these
+.~lock.*
+**/.~lock.*

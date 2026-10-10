@@ -1,0 +1,54 @@
+{
+  "_note": "Every third-party figure printed in the deck. Each entry names the publication, date and URL so a judge can check it. Values are quoted verbatim from the cited page; do not restate them loosely.",
+  "who": {
+    "illnesses_millions": 866,
+    "deaths_millions": 1.52,
+    "share_of_world": "1 in 9",
+    "economic_loss_usd_billions": 310,
+    "under5_share_pct": 29,
+    "under5_deaths": 143000,
+    "year_of_estimate": 2021,
+    "source": "WHO, Food safety fact sheet, updated 4 June 2026",
+    "url": "https://www.who.int/news-room/fact-sheets/detail/food-safety",
+    "note": "Supersedes the older 600M / 420k / 1-in-10 figures still circulating; the fact sheet was revised in June 2026."
+  },
+  "fssai_milk": {
+    "fy25_tested": 33405,
+    "fy25_failed": 12780,
+    "fy25_rate_pct": 38.3,
+    "fy26_tested": 39351,
+    "fy26_failed": 14668,
+    "fy26_rate_pct": 37.3,
+    "fy26_civil_cases": 10714,
+    "source": "FSSAI enforcement data tabled in Parliament; Lok Sabha Unstarred Question No. 1092, answered 24 July 2026",
+    "url": "https://sansad.in/getFile/lsapps/loksabhaquestions/annex/188/AU1092_7TaOa5.pdf?source=lsapps",
+    "corroboration": [
+      "https://eng.ruralvoice.in/national/milk-quality-concerns-deepen-37-pc-of-samples-fail-fssai-standards-in-fy26-over-11700-cases-filed.html",
+      "https://www.aninews.in/news/business/over-40000-food-samples-failed-safety-tests-in-fy26-govt-tells-parliament20260724162823"
+    ]
+  },
+  "fssai_all_food": {
+    "fy26_failed": 40023,
+    "headline": "nearly one in every five food samples tested across the country during 2025-26 failed to meet food safety standards",
+    "source": "ANI, 24 July 2026, reporting the same Lok Sabha reply",
+    "url": "https://www.aninews.in/news/business/over-40000-food-samples-failed-safety-tests-in-fy26-govt-tells-parliament20260724162823"
+  },
+  "papers": [
+    {
+      "authors": "Fragkos N., Bouzembrak Y., Erasmus S.W.",
+      "title": "The role of artificial intelligence in combating food fraud: a systematic literature review",
+      "venue": "Critical Reviews in Food Science and Nutrition",
+      "year": 2026,
+      "doi": "10.1080/10408398.2026.2654710",
+      "url": "https://doi.org/10.1080/10408398.2026.2654710"
+    },
+    {
+      "authors": "et al.",
+      "title": "Recent advances on artificial intelligence-based approaches for food adulteration and fraud detection in the food industry: challenges and opportunities",
+      "venue": "Food Chemistry, vol. 468, art. 142439",
+      "year": 2025,
+      "pmid": "39675268",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39675268/"
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+SLIDE SIZE: 13.333333333333334 x 7.5
+==============================================================================
+SLIDE 1  layout='DEFAULT'  n_shapes=20
+  AUTO_SHAPE   'Google Shape;16;p3'       ( 0.89, 1.54)  8.74x 0.28
+      TEXT: Organised by Dept. of Computer Engineering, PCCOE, Pune · CESA · ACM PCCOE Student Chapter
+  AUTO_SHAPE   'Google Shape;17;p3'       ( 9.55, 1.36)  2.82x 0.42
+      TEXT: ROUND 1 · IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;18;p3'       ( 0.89, 1.89)  3.74x 1.15
+  AUTO_SHAPE   'Google Shape;19;p3'       ( 1.11, 2.06)  3.40x 0.26
+      TEXT: Final Round
+  AUTO_SHAPE   'Google Shape;20;p3'       ( 1.11, 2.33)  3.40x 0.30
+      TEXT: 23 October 2026
+  AUTO_SHAPE   'Google Shape;21;p3'       ( 4.80, 1.89)  3.74x 1.15
+  AUTO_SHAPE   'Google Shape;22;p3'       ( 5.02, 2.06)  3.40x 0.26
+      TEXT: Venue
+  AUTO_SHAPE   'Google Shape;23;p3'       ( 5.02, 2.33)  3.40x 0.30
+      TEXT: PCCOE, Pune
+  AUTO_SHAPE   'Google Shape;24;p3'       ( 8.70, 1.89)  3.74x 1.15
+  AUTO_SHAPE   'Google Shape;25;p3'       ( 8.93, 2.06)  3.40x 0.26
+      TEXT: Host Institute
+  AUTO_SHAPE   'Google Shape;26;p3'       ( 8.93, 2.33)  3.40x 0.57
+      TEXT: Pimpri Chinchwad College of Engineering, Pune
+  AUTO_SHAPE   'Google Shape;27;p3'       ( 0.89, 3.55) 11.90x 0.46
+      TEXT: Title: [Enter your proposed solution title here]
+  AUTO_SHAPE   'Google Shape;28;p3'       ( 1.11, 4.17)  4.49x 0.28
+      TEXT: Team Members
+  AUTO_SHAPE   'Google Shape;29;p3'       ( 1.18, 4.50)  4.41x 0.96
+      TEXT: [Name] (Team Lead) || [Name] || [Name]
+  TABLE        'Google Shape;30;p3'       ( 5.92, 4.14)  3.28x 3.28
+      TABLE 6x2
+        r0: ['Team Details', '']
+        r1: ['Team Name', '[ ]']
+        r2: ['Team Lead', '[ ]']
+        r3: ['College Name', '[ ]']
+        r4: ['Theme', '[Monitor / Detect / Trace / Protect]']
+        r5: ['Solution Type', '[Software / Hardware / Both]']
+  PICTURE      'Google Shape;31;p3'       (12.03, 0.14)  1.22x 1.22
+  PICTURE      'Google Shape;32;p3'       ( 0.15, 0.14)  1.32x 1.32
+  PICTURE      'Google Shape;33;p3'       ( 4.28, 0.01)  4.77x 1.48
+  AUTO_SHAPE   'Google Shape;34;p3'       ( 6.09, 0.90)  1.16x 0.46
+      TEXT: 2026
+  AUTO_SHAPE   'Google Shape;35;p3'       ( 4.63, 3.17)  4.08x 0.30
+      TEXT: Strictly Maintain no of slides under 9
+==============================================================================
+SLIDE 2  layout='DEFAULT'  n_shapes=4
+  AUTO_SHAPE   'Google Shape;41;p4'       ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;42;p4'       ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Problem Understanding
+  AUTO_SHAPE   'Google Shape;43;p4'       ( 1.25, 2.48)  5.09x 2.36
+      TEXT: Problem description (your own problem statement) || Existing challenges and issues || Evidence: data, news or field observations, with sources || Target users and stakeholders || Need for the solution
+  AUTO_SHAPE   'Google Shape;44;p4'       ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 02
+==============================================================================
+SLIDE 3  layout='DEFAULT'  n_shapes=4
+  AUTO_SHAPE   'Google Shape;50;p5'       ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;51;p5'       ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Proposed Solution & Innovation
+  AUTO_SHAPE   'Google Shape;52;p5'       ( 1.25, 2.48)  5.09x 1.69
+      TEXT: Overview of the proposed solution || Key features and modules || Innovation and uniqueness || Comparison with existing approaches (lab tests, kits, apps, current practice)
+  AUTO_SHAPE   'Google Shape;53;p5'       ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 03
+==============================================================================
+SLIDE 4  layout='DEFAULT'  n_shapes=4
+  AUTO_SHAPE   'Google Shape;59;p6'       ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;60;p6'       ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Technical Architecture
+  AUTO_SHAPE   'Google Shape;61;p6'       ( 1.25, 2.48)  5.09x 2.03
+      TEXT: System architecture or workflow diagram || Hardware: sensors, boards, modules (if any) || Software: technologies, tools, frameworks, APIs, AI/ML models || Methodology and approach || Scalability and security consideratio
+  AUTO_SHAPE   'Google Shape;62;p6'       ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 04
+==============================================================================
+SLIDE 5  layout='DEFAULT'  n_shapes=4
+  AUTO_SHAPE   'Google Shape;68;p7'       ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;69;p7'       ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Implementation / Prototype
+  AUTO_SHAPE   'Google Shape;70;p7'       ( 1.25, 2.48)  5.09x 2.69
+      TEXT: Prototype photos, screenshots, mockups or demo flow || Dataset, samples or input details (if applicable) || Expected working mechanism and key functionalities || What you will demonstrate in the final round on 23 October
+  AUTO_SHAPE   'Google Shape;71;p7'       ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 05
+==============================================================================
+SLIDE 6  layout='DEFAULT'  n_shapes=4
+  AUTO_SHAPE   'Google Shape;77;p8'       ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;78;p8'       ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Feasibility & Impact
+  AUTO_SHAPE   'Google Shape;79;p8'       ( 1.25, 2.48)  5.09x 2.03
+      TEXT: Real-world applicability and target deployment || Estimated cost per unit or per user || Scalability and sustainability || Expected social, health or business impact || Future enhancements
+  AUTO_SHAPE   'Google Shape;80;p8'       ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 06
+==============================================================================
+SLIDE 7  layout='DEFAULT'  n_shapes=9
+  AUTO_SHAPE   'Google Shape;86;p9'       ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;87;p9'       ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Research & References
+  AUTO_SHAPE   'Google Shape;88;p9'       ( 1.15, 2.46)  3.27x 0.29
+      TEXT: Research papers & patents
+  AUTO_SHAPE   'Google Shape;89;p9'       ( 1.24, 2.83)  3.18x 1.38
+      TEXT: [Author(s), Title, Journal/Conference, Year, DOI or link] || [ ] || [ ]
+  AUTO_SHAPE   'Google Shape;90;p9'       ( 5.08, 2.46)  3.27x 0.29
+      TEXT: Data, reports & regulations
+  AUTO_SHAPE   'Google Shape;91;p9'       ( 5.17, 2.83)  3.18x 1.11
+      TEXT: [FSSAI / FDA Maharashtra / government data, with link] || [News articles, with date and link] || [ ]
+  AUTO_SHAPE   'Google Shape;92;p9'       ( 9.00, 2.46)  3.27x 0.29
+      TEXT: Tools, datasets & field work
+  AUTO_SHAPE   'Google Shape;93;p9'       ( 9.09, 2.83)  3.18x 1.38
+      TEXT: [Datasets, APIs, libraries or hardware datasheets used] || [Surveys, interviews or field visits conducted] || [ ]
+  AUTO_SHAPE   'Google Shape;94;p9'       ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 08
+==============================================================================
+SLIDE 8  layout='DEFAULT'  n_shapes=4
+  AUTO_SHAPE   'Google Shape;100;p10'     ( 0.89, 0.89) 11.90x 0.28
+      TEXT: TECH4FOOD 2026 · ROUND 1 IDEA SUBMISSION
+  AUTO_SHAPE   'Google Shape;101;p10'     ( 0.89, 1.39) 11.90x 0.58
+      TEXT: Conclusion
+  AUTO_SHAPE   'Google Shape;102;p10'     ( 1.25, 2.48)  5.09x 1.36
+      TEXT: Summary of the solution || Key outcomes and benefits || Team readiness and roadmap to the final round
+  AUTO_SHAPE   'Google Shape;103;p10'     ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 07
+==============================================================================
+SLIDE 9  layout='DEFAULT'  n_shapes=3
+  AUTO_SHAPE   'Google Shape;109;p11'     ( 3.69, 2.87)  5.96x 1.00
+      TEXT: Thank You
+  AUTO_SHAPE   'Google Shape;110;p11'     ( 4.58, 4.06)  4.18x 0.38
+      TEXT: [Team Name] · [Contact email]
+  AUTO_SHAPE   'Google Shape;111;p11'     ( 0.89, 6.82) 11.90x 0.26
+      TEXT: Tech4Food 2026 · New Era of Smarter Food Safety · PCCOE, Pune · 09
