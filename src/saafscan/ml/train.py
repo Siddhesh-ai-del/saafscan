@@ -28,13 +28,7 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.ensemble import GradientBoostingClassifier
 
-from saafscan.ml.calibration import (
-    apply_temperature,
-    confusion_matrix,
-    fit_temperature,
-    predict_with_abstention,
-    select_abstain_threshold,
-)
+from saafscan.ml.calibration import abstention_metrics, fit_abstention_policy
 from saafscan.ml.features import FEATURE_NAMES, extract_features
 from saafscan.roi import zones_from_strip
 from saafscan.synthetic import TRAINING_CLASSES
@@ -43,11 +37,6 @@ from saafscan.synthetic import TRAINING_CLASSES
 CLASS_INDEX: dict[str, int] = {label: i for i, label in enumerate(TRAINING_CLASSES)}
 _N_CLASSES = len(CLASS_INDEX)
 _INCONCLUSIVE_IDX = CLASS_INDEX["inconclusive"]
-
-# Abstention policy: fit on val, but never below 0.55 (a verdict on a coin
-# flip is not a verdict) and never at 1.0 (which would abstain on everything).
-_ABSTAIN_FLOOR = 0.55
-_MIN_VAL_PRECISION = 0.98
 
 
 def export_dataset(ds_dir: Path) -> dict[str, tuple[np.ndarray, np.ndarray]]:
@@ -99,38 +88,6 @@ def export_dataset(ds_dir: Path) -> dict[str, tuple[np.ndarray, np.ndarray]]:
             np.asarray([y for _, y in items], dtype=np.int64),
         )
         for split, items in rows.items()
-    }
-
-
-def _fit_calibration(probs_val: np.ndarray | None, y_val: np.ndarray | None) -> tuple[float, float]:
-    """Temperature + abstain threshold on the validation split.
-
-    With no validation split, falls back to identity temperature and the
-    policy floor — honest about the fact that nothing was calibrated.
-    """
-    if probs_val is None or len(y_val) == 0:
-        return 1.0, _ABSTAIN_FLOOR
-    temperature = fit_temperature(probs_val, y_val, _N_CLASSES)
-    calibrated = apply_temperature(probs_val, temperature)
-    threshold = select_abstain_threshold(
-        calibrated, y_val, _N_CLASSES, min_precision=_MIN_VAL_PRECISION
-    )
-    return float(temperature), float(np.clip(threshold, _ABSTAIN_FLOOR, 0.999))
-
-
-def _held_out_metrics(
-    probs: np.ndarray, y: np.ndarray, temperature: float, threshold: float
-) -> dict[str, Any]:
-    """Accuracy/coverage/confusion under the exact serving abstention rule."""
-    calibrated = apply_temperature(probs, temperature)
-    preds = predict_with_abstention(calibrated, threshold, _INCONCLUSIVE_IDX)
-    n = len(y)
-    return {
-        "n": int(n),
-        "accuracy": float((preds == y).mean()) if n else 0.0,
-        "coverage": float((preds != _INCONCLUSIVE_IDX).mean()) if n else 0.0,
-        "abstained": int((preds == _INCONCLUSIVE_IDX).sum()),
-        "confusion": confusion_matrix(y, preds, _N_CLASSES) if n else [],
     }
 
 
@@ -197,15 +154,21 @@ def train_features_model(
     model.fit(x_train, y_train)
 
     x_val, y_val = exported.get("val", (np.empty(0, np.float32), np.empty(0, np.int64)))
-    temperature, threshold = _fit_calibration(
-        model.predict_proba(x_val) if len(y_val) else None, y_val
+    # Shared calibration policy (calibration.fit_abstention_policy): temperature
+    # + abstain threshold fitted on val only, never on the held-out test split.
+    temperature, threshold = fit_abstention_policy(
+        model.predict_proba(x_val) if len(y_val) else None, y_val, _N_CLASSES
     )
 
     metrics: dict[str, Any] = {"held_out_lighting": {}}
     if "test" in exported and len(exported["test"][1]):
         x_test, y_test = exported["test"]
-        metrics["held_out_lighting"] = _held_out_metrics(
-            model.predict_proba(x_test), y_test, temperature, threshold
+        metrics["held_out_lighting"] = abstention_metrics(
+            model.predict_proba(x_test),
+            y_test,
+            inconclusive_index=_INCONCLUSIVE_IDX,
+            temperature=temperature,
+            threshold=threshold,
         )
 
     models_dir = Path(models_dir)

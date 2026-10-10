@@ -8,6 +8,8 @@ to ``inconclusive`` rather than forcing a guess.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 
@@ -130,6 +132,43 @@ def select_abstain_threshold(
     return float(np.clip(best_tau, 1e-6, 1.0))
 
 
+def fit_abstention_policy(
+    probs: np.ndarray | None,
+    labels: np.ndarray | None,
+    n_classes: int,
+    *,
+    min_precision: float = 0.98,
+    floor: float = 0.55,
+) -> tuple[float, float]:
+    """Fit the shipped ``(temperature, abstain_threshold)`` pair on a calib split.
+
+    One policy for every trainer (features and CNN): temperature by
+    minimum-NLL golden-section search, then the least restrictive threshold
+    reaching ``min_precision`` on the calibration split, clipped to
+    ``[floor, 0.999]`` — a verdict on a coin flip is not a verdict, and a
+    threshold of 1.0 would abstain on everything.
+
+    Args:
+        probs: Raw model probabilities, shape (n, n_classes), or None.
+        labels: True class indices, or None/empty when nothing to calibrate.
+        n_classes: Class count.
+        min_precision: Target precision among accepted predictions.
+        floor: Policy minimum for the abstain threshold.
+
+    Returns:
+        ``(temperature, abstain_threshold)``. With no calibration data:
+        ``(1.0, floor)`` — nothing was fitted, and the fallback says so.
+    """
+    if probs is None or labels is None or len(labels) == 0:
+        return 1.0, float(floor)
+    raw = np.asarray(probs, dtype=np.float64)
+    temperature = fit_temperature(raw, labels, n_classes)
+    threshold = select_abstain_threshold(
+        apply_temperature(raw, temperature), labels, n_classes, min_precision=min_precision
+    )
+    return float(temperature), float(np.clip(threshold, floor, 0.999))
+
+
 def predict_with_abstention(
     probs: np.ndarray, threshold: float, inconclusive_index: int
 ) -> np.ndarray:
@@ -201,6 +240,62 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> 
     for t, p in zip(y_true, y_pred, strict=True):
         cm[int(t)][int(p)] += 1
     return cm
+
+
+def abstention_metrics(
+    probs: np.ndarray,
+    labels: np.ndarray,
+    *,
+    inconclusive_index: int,
+    temperature: float,
+    threshold: float,
+) -> dict[str, Any]:
+    """Held-out accuracy/coverage under the exact serving abstention rule.
+
+    Temperature-scales ``probs`` and applies :func:`predict_with_abstention`,
+    then reports accuracy over ALL samples — an abstention counts as a
+    prediction of the inconclusive class, which is right only when that is
+    the truth — plus coverage (fraction receiving a real verdict) and the
+    confusion matrix. Both trainers and the delta report use this function,
+    so their numbers are computed by identical code.
+
+    Args:
+        probs: Raw model probabilities, shape (n, n_classes).
+        labels: True class indices, shape (n,).
+        inconclusive_index: Column index of the inconclusive class (-1 if the
+            label set has none; such abstentions are excluded from the
+            confusion matrix, which has no column for them).
+        temperature: Fitted temperature to apply first.
+        threshold: Abstain threshold.
+
+    Returns:
+        ``{"n", "accuracy", "coverage", "abstained", "confusion"}`` in plain
+        Python types (JSON-serialisable); zeros, never NaN, on an empty split.
+    """
+    probs = np.asarray(probs, dtype=np.float64)
+    labels = np.asarray(labels, dtype=np.int64)
+    n = len(labels)
+    if n == 0:
+        return {"n": 0, "accuracy": 0.0, "coverage": 0.0, "abstained": 0, "confusion": []}
+    preds = predict_with_abstention(
+        apply_temperature(probs, temperature), threshold, inconclusive_index
+    )
+    # Accepted = a real food verdict was issued; representable = the confusion
+    # matrix has a column for the prediction (always true when the label set
+    # has an inconclusive class — abstentions then land in its column).
+    accepted = preds >= 0 if inconclusive_index < 0 else preds != inconclusive_index
+    representable = preds >= 0
+    return {
+        "n": int(n),
+        "accuracy": float((preds == labels).mean()),
+        "coverage": float(accepted.mean()),
+        "abstained": int((~accepted).sum()),
+        "confusion": (
+            confusion_matrix(labels[representable], preds[representable], probs.shape[1])
+            if representable.any()
+            else []
+        ),
+    }
 
 
 def accuracy_at_threshold(

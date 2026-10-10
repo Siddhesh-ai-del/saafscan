@@ -117,6 +117,53 @@ def test_select_abstain_threshold_meets_precision_target() -> None:
     assert all(probs[i].argmax() == labels[i] for i in np.where(accepted)[0])
 
 
+def test_fit_abstention_policy_is_shared_by_both_trainers() -> None:
+    """Model A and Model B must calibrate identically or the delta is a lie."""
+    from saafscan.ml.calibration import fit_abstention_policy
+
+    rng = np.random.default_rng(0)
+    y = rng.integers(0, 5, 60)
+    probs = np.eye(5)[y] * 0.9 + 0.025  # row sums: 0.9 + 4*0.025 = 1.0
+    temperature, tau = fit_abstention_policy(probs, y, 5)
+    assert 0.1 <= temperature <= 10.0
+    assert 0.55 <= tau <= 0.999
+
+    # No calibration data → identity temperature, policy floor (nothing fitted).
+    t0, tau0 = fit_abstention_policy(None, np.empty(0, np.int64), 5)
+    assert t0 == 1.0 and tau0 == 0.55
+
+
+def test_abstention_metrics_counts_abstentions_as_inconclusive() -> None:
+    """Held-out metrics: abstaining is only correct when the truth is inconclusive."""
+    from saafscan.ml.calibration import abstention_metrics
+
+    probs = np.array(
+        [
+            [0.9, 0.025, 0.025, 0.025, 0.025],  # accepted, correct
+            [0.3, 0.4, 0.1, 0.1, 0.1],  # conf 0.4 < 0.6 → abstain, truth 1 → wrong
+            [0.05, 0.05, 0.05, 0.05, 0.8],  # top = inconclusive → abstain, truth 4 → right
+        ]
+    )
+    y = np.array([0, 1, 4])
+    m = abstention_metrics(probs, y, inconclusive_index=4, temperature=1.0, threshold=0.6)
+    assert m["n"] == 3
+    assert m["accuracy"] == pytest.approx(2 / 3)
+    assert m["coverage"] == pytest.approx(1 / 3)
+    assert m["abstained"] == 2
+    assert m["confusion"][1][4] == 1  # truth 1 recorded as inconclusive
+    assert m["confusion"][4][4] == 1
+
+    # Empty split → zeros, never NaN (JSON reports must serialise).
+    e = abstention_metrics(
+        np.empty((0, 5)),
+        np.empty(0, np.int64),
+        inconclusive_index=4,
+        temperature=1.0,
+        threshold=0.6,
+    )
+    assert e["accuracy"] == 0.0 and e["coverage"] == 0.0 and e["confusion"] == []
+
+
 def test_confusion_matrix_is_counts_over_classes() -> None:
     from saafscan.ml.calibration import confusion_matrix
 
