@@ -1,0 +1,176 @@
+{
+  "active_model": null,
+  "reports": {
+    "features": {
+      "classes": [
+        "none",
+        "starch",
+        "detergent",
+        "both",
+        "inconclusive"
+      ],
+      "abstain_threshold": 0.55,
+      "ml": {
+        "accuracy": 1.0,
+        "selective_accuracy": 1.0,
+        "coverage": 0.8,
+        "abstained": 9,
+        "confusion": [
+          [
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            9,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            9,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            9
+          ]
+        ],
+        "coverage_curve": [
+          {
+            "threshold": 0.0,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.1,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.30000000000000004,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.55,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.6000000000000001,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.7000000000000001,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.8,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 1.0,
+            "coverage": 0.0,
+            "accuracy": 0.0
+          }
+        ]
+      },
+      "rules": {
+        "accuracy": 1.0,
+        "coverage": 0.8,
+        "confusion": [
+          [
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            9,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            9,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            9,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            9
+          ]
+        ]
+      },
+      "delta_accuracy": 0.0,
+      "active_model": "features",
+      "dataset": {
+        "split_policy": "by lighting condition (condition.seed % 10: 0-6 train, 7-8 val, 9 test) \u2014 never random images",
+        "n_test_samples": 45,
+        "n_test_conditions": 3,
+        "skipped_undetectable": 6,
+        "classes": [
+          "none",
+          "starch",
+          "detergent",
+          "both",
+          "inconclusive"
+        ]
+      }
+    }
+  }
+}

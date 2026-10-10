@@ -1,0 +1,77 @@
+{
+  "name": "features",
+  "kind": "features",
+  "backend": "sklearn",
+  "model": "GradientBoostingClassifier(n_estimators=200, max_depth=3)",
+  "classes": [
+    "none",
+    "starch",
+    "detergent",
+    "both",
+    "inconclusive"
+  ],
+  "features": [
+    "control_deltaE",
+    "starch_deltaE",
+    "detergent_deltaE",
+    "control_r",
+    "control_g",
+    "control_b",
+    "starch_r",
+    "starch_g",
+    "starch_b",
+    "detergent_r",
+    "detergent_g",
+    "detergent_b"
+  ],
+  "temperature": 1.2106377645736817,
+  "abstain_threshold": 0.55,
+  "n_train": 400,
+  "n_val": 89,
+  "trained_at": "2026-10-10T14:00:52+00:00",
+  "metrics": {
+    "held_out_lighting": {
+      "n": 45,
+      "accuracy": 1.0,
+      "coverage": 0.8,
+      "abstained": 9,
+      "confusion": [
+        [
+          9,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          9,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          9,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          9,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          9
+        ]
+      ]
+    }
+  }
+}
