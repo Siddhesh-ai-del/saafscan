@@ -214,3 +214,10 @@ startCamera();
 ping();
 loadHistory();
 setInterval(ping, 15000);
+
+// Deep link: /?demo=starch auto-runs a demo sample (dry-run rehearsals,
+// headless screenshot capture for the deck).
+const demoParam = new URLSearchParams(window.location.search).get("demo");
+if (demoParam && document.querySelector(`button.demo[data-sample="${demoParam}"]`)) {
+  setTimeout(() => runDemo(demoParam), 400);
+}
