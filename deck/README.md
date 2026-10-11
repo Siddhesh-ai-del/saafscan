@@ -10,6 +10,7 @@ retrained on real strip photos.
 deck/.venv/bin/python deck/bench.py         # re-measure timings -> bench.json
 deck/.venv/bin/python deck/make_assets.py   # charts + screenshot crops -> assets/
 deck/.venv/bin/python deck/build_deck.py    # template -> Tech4Food_Round1_SaafScan.pptx
+deck/.venv/bin/python deck/fill_team.py     # team names, college, contact email
 deck/.venv/bin/python deck/verify_deck.py   # three-stage gate
 ```
 
@@ -42,15 +43,38 @@ and 420,000 figures that are still widely quoted.
 - all 33 chrome shapes (eyebrow, 36 pt Rubik title, footer, logos, the
   "Strictly Maintain no of slides under 9" line, and the template's swapped
   `·08` / `·07` footers on slides 7 and 8) are byte-identical to the template
-- team name, lead, member names, college and contact email stay as fillable
-  `[ ]` placeholders for the team to complete before export
+- team name, lead, member names, college and contact email ship as fillable
+  `[ ]` placeholders in the template; `fill_team.py` writes the real values
+  into those shapes so the chrome geometry is never disturbed
 - cost figures are labelled estimates with their basis stated
 - no claim that the ML model outperforms the rule table; both scored 1.000 on
   the held-out split
 
 ## Before submitting
 
-1. Fill the placeholders on slide 1 and slide 9.
-2. `deck/.venv/bin/python deck/build_deck.py && deck/verify_deck.py`
-3. Upload `Tech4Food_Round1_SaafScan.pptx` to Google Slides and export as PDF,
-   or submit `Tech4Food_Round1_SaafScan.pdf` directly.
+1. `deck/.venv/bin/python deck/build_deck.py && deck/.venv/bin/python deck/fill_team.py`
+2. `deck/.venv/bin/python deck/verify_deck.py` — must report `0 warnings · 0 failures`.
+3. Copy the rendered PDF into place and check it:
+   ```bash
+   cp deck/render/Tech4Food_Round1_SaafScan.pdf deck/Tech4Food_Round1_SaafScan.pdf
+   pdffonts deck/Tech4Food_Round1_SaafScan.pdf        # Rubik and DM Sans, emb = yes
+   pdftotext deck/Tech4Food_Round1_SaafScan.pdf - | grep '\['   # no leftovers
+   ```
+
+**Submit the PDF.** It is the verified artifact and it renders identically
+everywhere: the fonts are embedded in the file itself, so a judge sees the
+layout we approved whatever they open it with.
+
+Two ways to lose that, both avoidable:
+
+- **Do not round-trip the PPTX through Google Slides.** Google Slides ignores
+  embedded fonts and substitutes its own, which reflows text out of the boxes
+  we sized to the point. Export the PDF from local LibreOffice, as
+  `verify_deck.py` already does.
+- **Do not re-save the PPTX in a slide editor.** LibreOffice and PowerPoint
+  re-serialise the package and drift every chrome shape by a few hundred EMU
+  (about 0.0005 in). Invisible to a reader, but it fails the byte-identity
+  stage. If the submission form only accepts `.pptx`, use the derived
+  `Tech4Food_Round1_SaafScan_embedded.pptx` instead of re-saving by hand — it
+  is the clean build with the fonts embedded, and it is the one file in the
+  directory that is not gate-clean by design.

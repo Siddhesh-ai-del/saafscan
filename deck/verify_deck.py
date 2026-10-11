@@ -299,9 +299,18 @@ def stage1() -> None:
         fail(f"slide size {w} x {h}, expected {PAGE_W} x {PAGE_H}")
 
     # -- chrome byte-identical --------------------------------------------
+    # The closing slide's footer is chrome whose text is a template
+    # placeholder the team is required to replace, so fill_team.py writes into
+    # it. That one shape must keep the template's box exactly; only its text
+    # may differ, and only to the value fill_team.py puts there.
+    from fill_team import TEAM_FOOTER
+
+    text_overrides = {(9, "Google Shape;110;p11"): TEAM_FOOTER}
+
     src_by_name = {sh.name: sh for sh in src.slides[0].shapes}
     src_slides = list(src.slides)
     bad = []
+    filled = []
     for idx, names in CHROME.items():
         s_out = dst.slides[idx - 1]
         s_src = src_slides[idx - 1]
@@ -315,8 +324,13 @@ def stage1() -> None:
                 pass
             a = shape_fingerprint(out_by_name[nm])
             b = shape_fingerprint({sh.name: sh for sh in s_src.shapes}[nm])
-            if a != b:
-                bad.append(f"slide {idx}: chrome shape {nm} changed\n      out={a}\n      tpl={b}")
+            if a == b:
+                continue
+            allowed = text_overrides.get((idx, nm))
+            if allowed is not None and a[:5] == b[:5] and a[5] == allowed:
+                filled.append(f"slide {idx}: {nm} carries the team footer")
+                continue
+            bad.append(f"slide {idx}: chrome shape {nm} changed\n      out={a}\n      tpl={b}")
     if bad:
         for b in bad:
             fail(b)
@@ -325,6 +339,8 @@ def stage1() -> None:
             "all 33 chrome shapes byte-identical to the template (eyebrow, 36pt title, "
             "footer, logos, instruction line)"
         )
+        for line in filled:
+            ok(line)
 
     # the swapped 07/08 footer numbers must survive as issued
     f7 = [sh for sh in dst.slides[6].shapes if sh.name == "Google Shape;94;p9"][0].text_frame.text
