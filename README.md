@@ -153,6 +153,45 @@ Read it like this:
   expected). A zone hovering just above zero is the failure to worry about: the
   chemistry did not visibly react.
 
+## Turning a shoot into training data
+
+Round 1 said the model would be retrained on real strips before the final.
+`synthetic.build_dataset` can only render synthetic scenes; `ml.train` reads
+`manifest.json` + `.npy` crops and never asks where a crop came from. `ingest`
+is the piece in between: photograph → canonical crop → manifest row.
+
+Name the shots `SESSION_LABEL_N` and point it at the folder:
+
+```bash
+photos/S001_none_0.jpg
+photos/S001_starch_1.jpg
+photos/S002_detergent_0.jpg
+
+.venv/bin/python -m saafscan.ingest photos/ --dataset data/realset
+# 3 taken in, 0 refused, 0 already present -> 3 samples
+```
+
+Each shot is warped to the same `STRIP_SIZE` crop and white-balanced through
+the printed card, so training features come from the identical chain the
+request path uses. A shot the detector cannot use is reported with the stage
+that gave up — `card` or `strip` — never silently dropped, so a bad frame is
+caught while you are still standing at the bench.
+
+**Split is decided by session, not by photograph.** All frames from one sitting
+go to one split, the same way the synthetic set splits by lighting condition.
+Splitting 40 photos of a single desk lamp across train and test would score
+beautifully and mean nothing.
+
+Train on it the same way as synthetic:
+
+```bash
+.venv/bin/python scripts/train_features.py --dataset data/realset
+```
+
+`ml.train` refuses a training split missing any of the five classes, so a
+partial shoot fails loudly rather than producing a model that maps argmax to
+the wrong labels.
+
 ## Physical kit for 23 Oct
 
 > ⚠️ **Synthetic demo mode is for Round-1 screenshots and dry-run rehearsal only.**
@@ -174,6 +213,16 @@ Procurement list (non-code items the live demo needs):
 
 **Also carry:** a recorded demo video as fallback, laptop with `.venv` pre-built (offline),
 and a printed one-page verdict sample for judges who don't scan QR.
+
+**Shooting plan (18–19 Oct).** Photograph all five classes — plain milk, milk +
+starch, milk + detergent, both, and one deliberately under-reacted strip for
+`inconclusive` — across at least three lighting setups (desk lamp, window
+light, corridor/flash). Each setup is its own session: `S001`, `S002`, `S003`.
+Five to eight frames per class per session is enough to retire the synthetic
+disclaimer in the deck: *"trained on N real strip photographs across M lighting
+conditions, held out by session."* Rehearse the shoot on a blank paper strip
+first, with `diagnostics` open, so the first real reagent frames are not also
+the first time the pipeline sees your room.
 
 ## Security & privacy
 
