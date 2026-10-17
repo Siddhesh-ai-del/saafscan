@@ -115,6 +115,44 @@ confidence → `inconclusive`, never a fabricated verdict) and every held-out
 number come from `saafscan.ml.calibration`, shared by both trainers, so the
 delta is computed by identical code.
 
+## Diagnosing a rejected photograph
+
+`analyze()` stops at the first failure with one sentence — correct for a user,
+useless when a real strip photo is rejected. `saafscan.diagnostics` runs every
+stage it can and records what each one saw:
+
+```bash
+.venv/bin/python -m saafscan.diagnostics photo.jpg --out debug/
+```
+
+Exit code `0` if the photo analysed, `1` if it was rejected. `debug/` gets an
+annotated copy: the detected card and strip quads outlined, and a panel listing
+every measurement.
+
+```
+ok    image    640x480 px RGB
+ok    card     calibration card detected
+        white_de                 4.43     <- printed card accuracy
+ok    strip    reagent strip detected
+ok    zones    reaction-zone colours measured
+        starch_de               98.73     <- reacted zone vs unreacted nominal
+FAIL  strip    no elongated bright quad passed the strip gates
+skip  zones    not run (a previous stage failed)
+```
+
+Read it like this:
+
+- **`card` fails** — the printed card is wrong, too small, or the photo is not of
+  a SaafScan scene. Re-print on matte paper, get closer, more even light.
+- **`white_de`/`grey_de`/`black_de` large** — the printed card's own patches are
+  off nominal, so white-balance is anchoring on a bad reference. Re-print.
+- **`strip` fails with the card found** — the strip is out of frame, too dark,
+  or sitting on a bright surface so its contrast over the background is lost.
+- **`zones` ΔE values** — a reacted zone should sit *far* from its unreacted
+  nominal (starch reading ~99 above is the blue-black complex, which is
+  expected). A zone hovering just above zero is the failure to worry about: the
+  chemistry did not visibly react.
+
 ## Physical kit for 23 Oct
 
 > ⚠️ **Synthetic demo mode is for Round-1 screenshots and dry-run rehearsal only.**
