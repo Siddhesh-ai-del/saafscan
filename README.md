@@ -205,7 +205,7 @@ Procurement list (non-code items the live demo needs):
 |---|---|---|---|
 | 1 | **Iodine solution** (tincture/Lugol's, dilute) | starch test — blue-black complex | pharmacy / lab supplier; keep away from eyes; carry in a sealed small bottle |
 | 2 | **Methylene blue** solution | detergent test — decolourisation | lab chemical supplier; small quantity only |
-| 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut ≈ 8×80 mm; ~20 strips for the day |
+| 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut **20 × 80 mm (4:1)** — the detector's aspect gate is 2.5–9.0 and `STRIP_SIZE` is 360×90, so 4:1 matches the trained geometry; 8×80 is aspect 10 and is rejected. ~20 strips for the day, cut clean with a ruler |
 | 4 | **Printed colour calibration card** | white-balance + ΔE reference | print on matte photo paper, never glossy (glare breaks detection); ≥2 spares |
 | 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 23 Oct in labelled cups; bring iodine/starch control |
 | 6 | **Second phone (backup)** | camera failure fallback | pre-tested with the app before leaving |

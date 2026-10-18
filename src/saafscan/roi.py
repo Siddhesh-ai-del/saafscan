@@ -17,6 +17,18 @@ ZONE_NOMINAL: dict[str, tuple[int, int, int]] = {
 STRIP_SIZE = (360, 90)  # canonical (width, height)
 _ZONE_SPAN = 0.55  # fraction of each band sampled (inner region)
 
+# Long/short aspect accepted by detect_strip. Anything outside this window is
+# never considered a strip: below it a bright rectangle looks too square to be
+# one, above it the object is too narrow to carry three readable zones.
+STRIP_ASPECT_RANGE = (2.5, 9.0)
+
+# Cut size for real paper strips, (width, height) in mm. Recorded here, next to
+# the gate it has to satisfy, because the previous spec of 8x80 mm was aspect
+# 10 — outside STRIP_ASPECT_RANGE — so every strip cut to the documented size
+# was rejected by the detector. Long/short must also track STRIP_SIZE's 4:1,
+# since that is the proportion zones_from_strip splits into three zones.
+STRIP_PHYSICAL_MM = (20.0, 80.0)
+
 
 def detect_strip(image: np.ndarray) -> np.ndarray | None:
     """Find the elongated bright reagent strip. Returns ordered quad or None.
@@ -43,7 +55,8 @@ def detect_strip(image: np.ndarray) -> np.ndarray | None:
             continue
         quad = order_quad(poly.reshape(4, 2).astype(np.float32))
         aspect, solidity, area_frac = _quad_geometry(quad, img_area)
-        if not (2.5 <= aspect <= 9.0 and solidity > 0.8 and 0.015 <= area_frac <= 0.2):
+        lo, hi = STRIP_ASPECT_RANGE
+        if not (lo <= aspect <= hi and solidity > 0.8 and 0.015 <= area_frac <= 0.2):
             continue
         rect_mask = np.zeros(gray.shape, np.uint8)
         cv2.fillPoly(rect_mask, [quad.astype(np.int32)], 255)

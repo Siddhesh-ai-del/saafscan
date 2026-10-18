@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from saafscan.color import delta_e
-from saafscan.roi import ZONE_NOMINAL, detect_strip, extract_zones, warp_strip
+from saafscan.roi import (
+    STRIP_ASPECT_RANGE,
+    STRIP_PHYSICAL_MM,
+    STRIP_SIZE,
+    ZONE_NOMINAL,
+    detect_strip,
+    extract_zones,
+    warp_strip,
+)
 from saafscan.synthetic import render_random_photo, render_sample
 from tests.conftest import assert_is_image
 
@@ -91,3 +100,45 @@ def test_zones_are_stable_across_exposure() -> None:
                 np.asarray(zones_a[name], np.float32), np.asarray(zones_b[name], np.float32)
             )
             assert err < 35.0, f"{label}/{name}: deltaE={err:.1f} under 0.75x exposure"
+
+
+def _aspect(size: tuple[float, float]) -> float:
+    long_, short_ = max(size), min(size)
+    return float(long_ / short_)
+
+
+def test_the_documented_cut_size_satisfies_the_detection_gate() -> None:
+    """The strip spec and the gate it must pass cannot drift apart.
+
+    The README used to say "cut ~8x80 mm" while detect_strip only accepts
+    long/short aspects of 2.5-9.0. 8x80 is aspect 10, so every strip cut to the
+    written size was rejected by the detector — after all the calibration-card
+    work had already succeeded. Both numbers now live in roi.py so a test can
+    compare them.
+    """
+    aspect = _aspect(STRIP_PHYSICAL_MM)
+    lo, hi = STRIP_ASPECT_RANGE
+    assert lo <= aspect <= hi, (
+        f"physical strip {STRIP_PHYSICAL_MM} is aspect {aspect:.2f}, "
+        f"outside the detect_strip gate {lo}-{hi} — strips cut to spec cannot be found"
+    )
+
+
+def test_the_cut_size_matches_the_proportion_the_zones_are_split_on() -> None:
+    """zones_from_strip divides the warped strip into thirds along its length.
+
+    The warp maps the detected quad onto STRIP_SIZE, so a physical strip whose
+    long/short ratio differs from STRIP_SIZE's would land distorted, and each
+    reaction zone would be sampled from the wrong band.
+    """
+    assert _aspect(STRIP_PHYSICAL_MM) == pytest.approx(_aspect(STRIP_SIZE), rel=0.05)
+
+
+def test_the_previously_documented_overlong_strip_is_rejected() -> None:
+    """8x80 mm — the old README spec — must stay outside the gate.
+
+    Pins the exact mistake that wasted a real photograph, so widening the gate
+    to admit it has to be a deliberate, test-visible decision.
+    """
+    lo, hi = STRIP_ASPECT_RANGE
+    assert not lo <= _aspect((8.0, 80.0)) <= hi
