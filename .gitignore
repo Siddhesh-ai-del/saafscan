@@ -32,3 +32,6 @@ deck/render/
 # LibreOffice lock files — never commit these
 .~lock.*
 **/.~lock.*
+
+# Browser QA session artifacts (Playwright MCP)
+.playwright-mcp/

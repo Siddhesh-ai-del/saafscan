@@ -1,0 +1,104 @@
+/* ============================================================
+   SaafScan — design tokens ("Laboratory Editorial")
+   Light paper theme · self-hosted Fraunces · no CDN
+   ============================================================ */
+
+/* ---- display face: Fraunces variable (OFL, self-hosted) ---- */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("../fonts/fraunces.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fraunces";
+  font-style: italic;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("../fonts/fraunces-italic.woff2") format("woff2");
+}
+
+:root {
+  /* ---- color: paper & ink --------------------------------- */
+  --paper: #f7f5f0;
+  --paper-2: #fdfcfa;
+  --paper-3: #ffffff;
+  --ink: #16181c;
+  --ink-soft: #3c3f45;
+  --muted: #65686f;        /* AA on paper (5.1:1) */
+  --faint: #84878d;        /* decorative / large only */
+  --line: rgba(22, 24, 28, 0.1);
+  --line-strong: rgba(22, 24, 28, 0.18);
+
+  /* ---- accent (deep jade) --------------------------------- */
+  --accent: #0e7d56;         /* fills (white text ≥5.3:1) */
+  --accent-bright: #0f8a5f;  /* glows, strokes, graphics */
+  --accent-ink: #0a5c40;     /* accent as text (8:1) */
+  --accent-wash: rgba(15, 138, 95, 0.08);
+  --accent-wash-strong: rgba(15, 138, 95, 0.14);
+
+  /* ---- signal scale (data-tone / data-state) --------------- */
+  --signal-ok: #0f8a5f;
+  --signal-ok-ink: #0a5c40;
+  --signal-ok-wash: rgba(15, 138, 95, 0.09);
+  --signal-warn: #b7791f;
+  --signal-warn-ink: #8a5a12;
+  --signal-warn-wash: rgba(183, 121, 31, 0.1);
+  --signal-bad: #c5372b;
+  --signal-bad-ink: #9e2a20;
+  --signal-bad-wash: rgba(197, 55, 43, 0.08);
+
+  /* ---- type ------------------------------------------------ */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --t-xs: 11.5px;
+  --t-sm: 12.5px;
+  --t-base: 15px;
+  --t-md: 17px;
+  --t-lg: 21px;
+  --t-xl: clamp(24px, 1.4vw + 20px, 28px);
+  --t-hero: clamp(30px, 3vw + 18px, 44px);
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.4;
+  --lh-base: 1.55;
+
+  --track-kicker: 0.14em;
+
+  /* ---- space (4px base) ------------------------------------ */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* ---- radii ----------------------------------------------- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* ---- elevation ------------------------------------------- */
+  --shadow-1: 0 1px 2px rgba(22, 24, 28, 0.05);
+  --shadow-2: 0 1px 2px rgba(22, 24, 28, 0.05), 0 10px 28px -16px rgba(22, 24, 28, 0.22);
+  --shadow-3: 0 2px 4px rgba(22, 24, 28, 0.06), 0 18px 44px -18px rgba(22, 24, 28, 0.28);
+  --top-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* ---- motion ---------------------------------------------- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 120ms;
+  --t-med: 240ms;
+  --t-slow: 480ms;
+
+  /* ---- layers ---------------------------------------------- */
+  --z-canvas: 0;
+  --z-content: 1;
+  --z-topbar: 10;
+  --z-overlay: 20;
+}

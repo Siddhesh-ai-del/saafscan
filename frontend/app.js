@@ -10,6 +10,7 @@ async function ping() {
   try {
     const r = await fetch("/health");
     const body = await r.json();
+    // "ready"/"degraded"/"offline" — wording is a styling contract (data-state drives CSS).
     el.textContent = body.status === "ok" ? "● ready" : "● degraded";
     el.dataset.state = body.status === "ok" ? "ok" : "down";
   } catch {
@@ -34,6 +35,8 @@ async function startCamera() {
     const video = $("video");
     video.srcObject = state.stream;
     await video.play();
+    // NOTE: "live" / "unavailable (…) — use upload" wording is a display
+    // contract with js/motion.js, which maps it to the viewfinder chip state.
     hint.textContent = "live";
     $("snap").disabled = false;
     $("flip").disabled = false;
@@ -65,6 +68,8 @@ async function analyseBlob(blob, tag) {
   state.busy = true;
   showVerdictPanel(true);
   setError("");
+  // NOTE: "analysing…"/"rendering…" wording is a display contract with
+  // js/motion.js, which turns it into the viewfinder scan overlay + aria-busy.
   $("v-chip").textContent = "analysing…";
   $("v-chip").dataset.tone = "warn";
   $("v-conf").textContent = "—";
@@ -107,6 +112,8 @@ function renderVerdict(body, seconds) {
   }[v.adulterant] || v.adulterant.toUpperCase();
 
   const pct = Math.round(v.confidence * 100);
+  // NOTE: the "N% confidence" format is a display contract with js/motion.js,
+  // which parses it to animate the gauge count-up.
   $("v-conf").textContent = `${pct}% confidence`;
   requestAnimationFrame(() => { $("v-meter").style.width = `${pct}%`; });
   $("v-sev").textContent = v.severity;
@@ -129,10 +136,27 @@ function setError(msg) {
 }
 
 /* --------------------------------------------------------------- history -- */
+// Escape user-influenced strings (sample_name derives from the upload's
+// multipart filename) before any innerHTML interpolation — stored-XSS guard.
+const esc = (s) => String(s).replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// "2026-10-10T11:25:26.027570+00:00" → "10 Oct · 11:25 UTC" (display only).
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getUTCMonth()];
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getUTCDate())} ${mon} · ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
+
+let historyReq = 0; // monotonically incremented — a stale response never wins a race
 async function loadHistory() {
+  const req = ++historyReq;
   try {
     const r = await fetch("/history?limit=20");
     const body = await r.json();
+    if (req !== historyReq) return; // superseded by a newer request
     const wrap = $("history");
     if (!body.entries || body.entries.length === 0) {
       wrap.innerHTML = '<p class="hint">No analyses yet.</p>';
@@ -144,12 +168,13 @@ async function loadHistory() {
       const label = e.verdict.adulterant.toUpperCase();
       return `<div class="entry">
         <span class="chip" data-tone="${tone}">${label}</span>
-        <span class="when">${e.timestamp} · ${e.sample_name || "—"} · ${Math.round(e.verdict.confidence * 100)}%</span>
-        <a href="/report/${e.id}" target="_blank">PDF ↗</a>
+        <span class="when">${esc(fmtWhen(e.timestamp))} · ${esc(e.sample_name || "—")}</span>
+        <span class="conf">${Math.round(e.verdict.confidence * 100)}%</span>
+        <a href="/report/${e.id}" target="_blank" rel="noopener">PDF ↗</a>
       </div>`;
     }).join("");
   } catch (err) {
-    $("history").innerHTML = `<p class="error">history unavailable: ${err.message}</p>`;
+    $("history").innerHTML = `<p class="error">history unavailable: ${esc(err.message)}</p>`;
   }
 }
 
@@ -206,6 +231,10 @@ $("v-again").addEventListener("click", () => {
   showVerdictPanel(false);
   setError("");
   window.scrollTo({ top: 0, behavior: "smooth" });
+  // The verdict panel just became display:none — keyboard focus fell back to
+  // <body>; park it on the next capture affordance (snap when the camera is
+  // live, otherwise the sr-only file input, which stays focusable).
+  ($("snap").disabled ? $("file-input") : $("snap")).focus({ preventScroll: true });
 });
 
 $("refresh").addEventListener("click", loadHistory);
@@ -216,8 +245,10 @@ loadHistory();
 setInterval(ping, 15000);
 
 // Deep link: /?demo=starch auto-runs a demo sample (dry-run rehearsals,
-// headless screenshot capture for the deck).
+// headless screenshot capture for the deck). Validate against the known
+// sample list — never interpolate raw query input into a selector.
+const DEMO_SAMPLES = ["none", "starch", "detergent"];
 const demoParam = new URLSearchParams(window.location.search).get("demo");
-if (demoParam && document.querySelector(`button.demo[data-sample="${demoParam}"]`)) {
+if (demoParam && DEMO_SAMPLES.includes(demoParam)) {
   setTimeout(() => runDemo(demoParam), 400);
 }

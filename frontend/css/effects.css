@@ -1,0 +1,32 @@
+/* ============================================================
+   SaafScan — effects: entrance motion & choreography
+   All effects are gated on `html.motion-ready` (set by js/motion.js
+   only when the user has not requested reduced motion).
+   ============================================================ */
+
+/* staggered entrance for panels + stepper */
+html.motion-ready .reveal {
+  opacity: 0;
+  transform: translateY(12px);
+}
+html.motion-ready .reveal.in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--t-med) var(--ease),
+    transform var(--t-med) var(--ease);
+}
+
+/* verdict panel re-animates each time app.js un-hides it
+   (display:none → block restarts CSS animations) */
+html.motion-ready #verdict-panel:not(.hidden) {
+  animation: rise var(--t-slow) var(--ease) both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* history rows fade in with the list */
+html.motion-ready .entry { animation: rise var(--t-med) var(--ease) both; }

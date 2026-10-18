@@ -4,81 +4,191 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SaafScan — 10-Second Adulterant Detection</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Ccircle cx='17' cy='17' r='14' fill='none' stroke='%230f8a5f' stroke-width='2'/%3E%3Ccircle cx='17' cy='17' r='7' fill='none' stroke='%230f8a5f' stroke-width='2'/%3E%3Ccircle cx='17' cy='17' r='2.6' fill='%230f8a5f'/%3E%3C/svg%3E" />
   <!-- API endpoints used by app.js: /analyze · /history · /report/{id} · /health -->
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/css/tokens.css" />
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/layout.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/effects.css" />
 </head>
 <body>
+  <div class="ambient" aria-hidden="true"><canvas id="ambient-canvas"></canvas></div>
+
   <header class="topbar">
     <div class="brand">
-      <span class="logo">◉</span>
+      <svg class="mark" viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <circle cx="17" cy="17" r="14.2" />
+        <circle cx="17" cy="17" r="8" />
+        <circle cx="17" cy="17" r="2.6" fill="currentColor" stroke="none" />
+        <path d="M17 0.8v4.6M17 28.6v4.6M0.8 17h4.6M28.6 17h4.6" stroke-linecap="round" />
+      </svg>
       <div>
         <h1>SaafScan</h1>
         <p class="tagline">10-second adulterant detection · any phone camera · offline</p>
       </div>
     </div>
-    <div class="status" id="status" data-state="checking">checking…</div>
+    <div class="status" id="status" role="status" data-state="checking">checking…</div>
   </header>
 
   <main>
+    <nav class="stepper reveal" aria-label="Workflow steps">
+      <ol class="stepper-rail">
+        <li class="step active" data-step="capture" aria-current="step">
+          <span class="step-num">01</span><span class="step-label">Capture</span>
+        </li>
+        <li class="step" data-step="verdict">
+          <span class="step-num">02</span><span class="step-label">Verdict</span>
+        </li>
+        <li class="step" data-step="evidence">
+          <span class="step-num">03</span><span class="step-label">Evidence log</span>
+        </li>
+      </ol>
+    </nav>
+
     <!-- CAPTURE -->
-    <section class="panel" id="capture-panel">
-      <h2>1 · Capture</h2>
+    <section class="panel reveal" id="capture-panel">
+      <header class="panel-head">
+        <div>
+          <p class="kicker">Specimen intake</p>
+          <h2 class="panel-title">Photograph the test strip</h2>
+        </div>
+      </header>
+
       <div class="capture-row">
-        <video id="video" playsinline autoplay muted></video>
-        <canvas id="canvas" hidden></canvas>
+        <figure class="viewfinder" id="viewfinder">
+          <video id="video" playsinline autoplay muted></video>
+          <canvas id="canvas" hidden></canvas>
+          <span class="reticles" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <figcaption class="vf-chip" id="camera-chip" data-state="checking">
+            <span class="vf-dot"></span><span id="camera-state">initialising…</span>
+          </figcaption>
+          <span class="vf-scan" aria-hidden="true"></span>
+        </figure>
+
         <div class="drop" id="drop">
+          <svg class="drop-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 15.5V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+            <path d="M4 14.5v4A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-4" />
+          </svg>
           <p><strong>Drop a strip photo</strong> or</p>
-          <label class="btn primary">
+          <label class="btn primary sm">
             Upload image
-            <input type="file" id="file-input" accept="image/*" hidden />
+            <input type="file" id="file-input" accept="image/*" class="sr-only" />
           </label>
-          <p class="hint" id="camera-hint">Camera: <span id="camera-state">initialising…</span></p>
         </div>
       </div>
+
       <div class="actions">
-        <button class="btn primary" id="snap" disabled>📸 Capture &amp; analyse</button>
-        <button class="btn" id="flip" disabled>Switch camera</button>
+        <button class="btn primary" id="snap" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.4l1.2-2h5.8l1.2 2h1.4A2.5 2.5 0 0 1 20 8.5v9A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5" />
+            <circle cx="12" cy="12.8" r="3.5" />
+          </svg>
+          Capture &amp; analyse
+        </button>
+        <button class="btn" id="flip" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9.5a8 8 0 0 1 13.6-3.9M20 14.5a8 8 0 0 1-13.6 3.9" />
+            <path d="M17.6 2.2v3.7h-3.7M6.4 21.8v-3.7h3.7" />
+          </svg>
+          Switch camera
+        </button>
       </div>
 
       <div class="demo">
-        <h3>Demo mode <span class="pill">synthetic · rehearsal only</span></h3>
+        <div class="demo-head">
+          <h3>Demo mode</h3>
+          <span class="pill">synthetic · rehearsal only</span>
+        </div>
         <p class="hint">Runs the real pipeline on generated strips — for Round-1 screenshots
           and dry runs. The 23 Oct final uses <strong>real reagent strips</strong>.</p>
         <div class="demo-row">
-          <button class="btn demo" data-sample="none">🥛 Pure</button>
-          <button class="btn demo" data-sample="starch">🧪 Starch</button>
-          <button class="btn demo" data-sample="detergent">🧼 Detergent</button>
+          <button class="btn demo" data-sample="none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3.8c3.5 4.3 5.8 7.4 5.8 10.1a5.8 5.8 0 1 1-11.6 0c0-2.7 2.3-5.8 5.8-10.1Z" />
+            </svg>
+            Pure
+          </button>
+          <button class="btn demo" data-sample="starch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <circle cx="9" cy="10" r="3.4" />
+              <circle cx="15.6" cy="13.6" r="2.6" />
+              <circle cx="15" cy="7.8" r="1.8" />
+              <circle cx="8.4" cy="16.2" r="1.6" />
+            </svg>
+            Starch
+          </button>
+          <button class="btn demo" data-sample="detergent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+              <circle cx="11.5" cy="13" r="7.2" />
+              <path d="M8 9.7c.8-.9 2-1.5 3.2-1.6" />
+              <circle cx="18.2" cy="5.8" r="2.2" />
+            </svg>
+            Detergent
+          </button>
         </div>
       </div>
     </section>
 
     <!-- VERDICT -->
     <section class="panel hidden" id="verdict-panel">
-      <h2>2 · Verdict</h2>
+      <header class="panel-head">
+        <div>
+          <p class="kicker">Verdict</p>
+          <h2 class="panel-title">Analysis result</h2>
+        </div>
+      </header>
       <div id="verdict-card" class="verdict">
-        <div class="verdict-head">
-          <span class="verdict-chip" id="v-chip">—</span>
-          <span class="verdict-conf" id="v-conf">—</span>
+        <div class="verdict-hero">
+          <div class="gauge-wrap">
+            <svg class="gauge" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="gauge-track" cx="60" cy="60" r="52" />
+              <circle class="gauge-arc" cx="60" cy="60" r="52" />
+            </svg>
+            <p class="verdict-conf mono" id="v-conf">—</p>
+          </div>
+          <div class="verdict-main">
+            <span class="verdict-chip" id="v-chip" aria-live="polite">—</span>
+            <p class="verdict-sev">Severity: <strong id="v-sev">—</strong></p>
+          </div>
         </div>
         <div class="meter"><div class="meter-fill" id="v-meter"></div></div>
-        <p class="verdict-sev">Severity: <strong id="v-sev">—</strong></p>
         <p class="verdict-advice" id="v-advice">—</p>
-        <details>
+        <details class="evidence">
           <summary>Colour evidence (ΔE vs printed reference)</summary>
           <pre id="v-evidence"></pre>
         </details>
         <div class="actions">
-          <a class="btn primary" id="v-report" href="#">⬇ Export PDF + QR report</a>
+          <a class="btn primary" id="v-report" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 4v10m0 0-4-4m4 4 4-4" />
+              <path d="M5 16.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5" />
+            </svg>
+            Export PDF + QR report
+          </a>
           <button class="btn" id="v-again">Analyse another</button>
         </div>
-        <p class="hint" id="v-latency"></p>
+        <p class="hint mono" id="v-latency"></p>
       </div>
-      <p class="error hidden" id="v-error"></p>
+      <p class="error hidden" id="v-error" role="alert"></p>
     </section>
 
     <!-- HISTORY -->
-    <section class="panel" id="history-panel">
-      <h2>3 · Evidence log <button class="btn small" id="refresh">refresh</button></h2>
+    <section class="panel reveal" id="history-panel">
+      <header class="panel-head">
+        <div>
+          <p class="kicker">Archive</p>
+          <h2 class="panel-title">Evidence log</h2>
+        </div>
+        <button class="btn ghost sm" id="refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+            <path d="M20 3.5V9h-5.5" />
+          </svg>
+          refresh
+        </button>
+      </header>
       <div id="history" class="history"><p class="hint">No analyses yet.</p></div>
     </section>
   </main>
@@ -88,5 +198,7 @@
   </footer>
 
   <script src="/static/app.js"></script>
+  <script src="/static/js/ambient.js"></script>
+  <script src="/static/js/motion.js"></script>
 </body>
 </html>
