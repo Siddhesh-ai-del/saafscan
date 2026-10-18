@@ -25,6 +25,7 @@ done
 
 shot() { # shot <name> <url>
   "$CHROME" --headless --no-sandbox --disable-gpu --hide-scrollbars \
+    --force-prefers-reduced-motion \
     --window-size=1360,1500 --virtual-time-budget=12000 \
     --screenshot="$OUT/$1" "$2" 2>/dev/null
   echo "✓ $OUT/$1"
