@@ -78,6 +78,35 @@ def test_history_template_classes_are_styled(html: str) -> None:
         assert re.search(rf"\.{cls}(\b|[:.\s,])", css), f".{cls} (written by app.js) must be styled"
 
 
+def test_demo_container_rules_do_not_leak_onto_demo_buttons() -> None:
+    """The demo container <div class="demo"> and the buttons button.btn.demo
+    share the .demo class. Any container styling scoped under #capture-panel
+    must use the direct-child combinator (> .demo) so it cannot match the
+    buttons — otherwise their pill padding/border is destroyed (regression:
+    buttons rendered as open arcs with the icon outside the capsule)."""
+    layout = (FRONTEND / "css" / "layout.css").read_text(encoding="utf-8")
+    components = (FRONTEND / "css" / "components.css").read_text(encoding="utf-8")
+    for name, css in (("layout.css", layout), ("components.css", components)):
+        offenders = re.findall(rf"#capture-panel\s+\.demo\b", css)
+        assert offenders == [], (
+            f"{name}: '#capture-panel .demo' also matches button.btn.demo — "
+            "use '#capture-panel > .demo' (the container is a direct child)"
+        )
+
+
+def test_demo_button_rules_only_set_button_appropriate_properties() -> None:
+    """The shared .demo class must not leak container-only box styling onto
+    the buttons when they live outside the hero grid (regression: border-top
+    /padding from the container rule shattered the pill shape)."""
+    components = (FRONTEND / "css" / "components.css").read_text(encoding="utf-8")
+    # The bare .demo rule (container) may style borders/margins, but the
+    # button rule .btn.demo must fully re-specify padding so no container
+    # padding can survive via specificity.
+    btn_demo = re.search(r"\.btn\.demo\s*\{([^}]*)\}", components)
+    assert btn_demo, ".btn.demo rule missing"
+    assert "padding" in btn_demo.group(1), ".btn.demo must set its own padding"
+
+
 def test_brand_string_present_for_the_api_spa_test(html: str) -> None:
     assert "SaafScan" in html
 

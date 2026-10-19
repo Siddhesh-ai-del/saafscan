@@ -121,7 +121,7 @@ main:has(#verdict-panel.hidden) #capture-panel {
 main:has(#verdict-panel.hidden) #capture-panel .panel-head { grid-area: head; }
 main:has(#verdict-panel.hidden) #capture-panel .capture-row { grid-area: media; }
 main:has(#verdict-panel.hidden) #capture-panel .actions { grid-area: act; }
-main:has(#verdict-panel.hidden) #capture-panel .demo { grid-area: demo; margin-top: 0; padding: var(--s-4) 0 0 var(--s-5); border-top: 0; border-left: 1px solid var(--line); }
+main:has(#verdict-panel.hidden) #capture-panel > .demo { grid-area: demo; margin-top: 0; padding: var(--s-4) 0 0 var(--s-5); border-top: 0; border-left: 1px solid var(--line); }
 
 /* ---- panel (raised paper card) ------------------------------ */
 .panel {
@@ -236,7 +236,7 @@ footer strong {
     grid-template-columns: 1fr;
     grid-template-areas: "head" "media" "act" "demo";
   }
-  main:has(#verdict-panel.hidden) #capture-panel .demo {
+  main:has(#verdict-panel.hidden) #capture-panel > .demo {
     border-left: 0;
     border-top: 1px solid var(--line);
     padding: var(--s-4) 0 0;

@@ -232,7 +232,9 @@
 .drop.over .drop-glyph { color: var(--accent-bright); transform: translateY(-3px); }
 
 /* ---- C8 · demo chips ------------------------------------------- */
-.demo {
+/* Container only — the buttons share the .demo class, so scope via the
+   direct child to keep border/margin/padding off button.btn.demo. */
+#capture-panel > .demo {
   margin-top: var(--s-5);
   border-top: 1px solid var(--line);
   padding-top: var(--s-4);
