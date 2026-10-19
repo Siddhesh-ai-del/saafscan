@@ -225,6 +225,21 @@ conditions, held out by session."* Rehearse the shoot on a blank paper strip
 first, with `diagnostics` open, so the first real reagent frames are not also
 the first time the pipeline sees your room.
 
+**Where each sample must land.** The strip is read as three equal thirds — on
+the 80 mm strip that is 0–26.7, 26.7–53.3 and 53.3–80 mm — and each third is
+sampled only across its **middle 55 %**, so the actual measurement bands are
+5.8–20.7, 32.7–47.3 and 59.3–74.0 mm. Put each of the three samples at the
+centre of its third: **≈ 13 mm, 40 mm and 67 mm** from the left edge.
+
+Colour placed at 10 / 25 / 42 mm reads back **one zone shifted**: the marking
+meant for the detergent zone falls inside the starch band, and the detergent
+band reads untouched paper — which is indistinguishable from a fully
+decolourised, i.e. reacted, zone. This is what `photo5.jpeg` did: colouring only
+the left half of the strip made the rule table report `both` at 0.71 from a
+strip that had no detergent on it. Blank paper in a loaded zone cannot be told
+apart from a positive, so zone placement is an operator responsibility, not
+something the pipeline can detect.
+
 ## Security & privacy
 
 - No personal data leaves the machine; telemetry: none.
