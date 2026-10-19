@@ -51,9 +51,20 @@ def _quad_geometry(quad: np.ndarray, img_area: float) -> tuple[float, float, flo
 
 
 def _warp(image: np.ndarray, quad: np.ndarray, size: tuple[int, int]) -> np.ndarray:
+    """Warp ``quad`` onto a ``size`` rectangle.
+
+    Corner order is **honoured, not re-derived**: the quad must already be
+    ordered top-left, top-right, bottom-right, bottom-left. detect_card
+    deliberately returns a *rotated* order so that a card photographed upside
+    down or on its side still maps to a correctly-oriented card image —
+    re-ordering by image position here would silently undo that.
+
+    Every quad reaching this function comes from a detector that has already
+    called :func:`order_quad` once.
+    """
     width, height = size
     dst = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]], np.float32)
-    matrix = cv2.getPerspectiveTransform(order_quad(quad), dst)
+    matrix = cv2.getPerspectiveTransform(np.asarray(quad, dtype=np.float32), dst)
     return cv2.warpPerspective(image, matrix, (width, height))
 
 
@@ -78,6 +89,18 @@ def _looks_like_card(warped: np.ndarray) -> bool:
     return bool(lums[0] >= lums.max() - 8.0 and lums[2] <= lums.min() + 8.0)
 
 
+def _card_orientations(quad: np.ndarray) -> list[np.ndarray]:
+    """The same rectangle as seen from each of four viewing angles.
+
+    ``order_quad`` labels corners by their position in the *image*, so a card
+    photographed upside down or turned on its side yields the right four points
+    in the wrong order. The warp then rotates the patch layout, white lands
+    where black should be, and the card is refused. Shifting the corner order by
+    one is precisely that rotation, so every candidate is checked in all four.
+    """
+    return [np.roll(quad, -shift, axis=0) for shift in range(4)]
+
+
 def detect_card(image: np.ndarray) -> np.ndarray | None:
     """Find the black-framed calibration card. Returns ordered quad or None."""
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -98,8 +121,10 @@ def detect_card(image: np.ndarray) -> np.ndarray | None:
             continue
         candidates.append((area_frac, quad))
     for _, quad in sorted(candidates, key=lambda c: -c[0]):
-        if _looks_like_card(_warp(image, quad, (CARD_NOMINAL["width"], CARD_NOMINAL["height"]))):
-            return quad
+        for oriented in _card_orientations(quad):
+            warped = _warp(image, oriented, (CARD_NOMINAL["width"], CARD_NOMINAL["height"]))
+            if _looks_like_card(warped):
+                return oriented
     return None
 
 

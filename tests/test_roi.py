@@ -142,3 +142,16 @@ def test_the_previously_documented_overlong_strip_is_rejected() -> None:
     """
     lo, hi = STRIP_ASPECT_RANGE
     assert not lo <= _aspect((8.0, 80.0)) <= hi
+
+
+def test_a_strip_laid_lengthways_is_refused_rather_than_misread() -> None:
+    """A strip whose long axis runs down the frame must be rejected outright.
+
+    warp_strip maps the quad's first edge onto STRIP_SIZE's 360-wide axis. For a
+    strip laid lengthways that edge is its *short* side, so zones_from_strip
+    would split the strip across its width and report three identical slices as
+    three different reaction zones — a confident wrong verdict, which is far
+    worse than a refusal.
+    """
+    vertical = np.ascontiguousarray(np.rot90(render_sample("none", seed=7), 1))
+    assert detect_strip(vertical) is None

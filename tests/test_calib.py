@@ -114,3 +114,36 @@ def test_white_balance_stabilises_white_patch_across_exposures(gain: float) -> N
     nominal = np.array([p["rgb"] for p in CARD_NOMINAL["patches"]], dtype=np.float32)
     errors = np.abs(patches - nominal).mean(axis=1)
     assert errors.max() < 20.0, f"gain={gain}: errors {errors}"
+
+
+@pytest.mark.parametrize(
+    "turns",
+    [1, 2, 3],
+    ids=["quarter-turn", "upside-down", "three-quarter-turn"],
+)
+def test_detect_card_accepts_the_card_at_any_rotation(turns: int) -> None:
+    """A card lying at some angle on the bench must still be readable.
+
+    order_quad labels corners by their position in the *image*, so a card
+    photographed upside down or turned on its side yields the correct four
+    points in the wrong order. The warp then rotates the patch layout, white
+    lands where black should be, and the card is refused — which is what
+    happened to two real photographs before this test existed.
+    """
+    image = np.ascontiguousarray(np.rot90(render_sample("none", seed=7), turns))
+    quad = detect_card(image)
+    assert quad is not None, f"card not detected at rot90 x{turns}"
+
+    patches = extract_patches(canonical_card(image, quad))
+    lum = patches @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    assert lum[0] >= lum.max() - 8.0, f"white not brightest at rot90 x{turns}: {lum}"
+    assert lum[2] <= lum.min() + 8.0, f"black not darkest at rot90 x{turns}: {lum}"
+
+
+def test_white_balance_still_corrects_an_upside_down_card() -> None:
+    """The correction itself must not depend on which way up the card is."""
+    image = np.ascontiguousarray(np.rot90(render_sample("none", seed=7), 2))
+    corrected = white_balance(image, detect_card(image))
+    patches = extract_patches(canonical_card(corrected))
+    nominal = np.array([p["rgb"] for p in CARD_NOMINAL["patches"]], dtype=np.float32)
+    assert np.abs(patches - nominal).mean(axis=1).max() < 20.0

@@ -58,6 +58,16 @@ def detect_strip(image: np.ndarray) -> np.ndarray | None:
         lo, hi = STRIP_ASPECT_RANGE
         if not (lo <= aspect <= hi and solidity > 0.8 and 0.015 <= area_frac <= 0.2):
             continue
+        # warp_strip maps the quad's first edge onto STRIP_SIZE's long axis. For
+        # a strip laid lengthways down the frame that edge is its *short* side,
+        # so zones_from_strip would split the strip across its width and report
+        # three identical slices as three different reaction zones. A refusal is
+        # recoverable; a confident wrong verdict is not.
+        tl, tr, br, bl = quad
+        along = (np.linalg.norm(tr - tl) + np.linalg.norm(br - bl)) / 2.0
+        across = (np.linalg.norm(bl - tl) + np.linalg.norm(br - tr)) / 2.0
+        if along <= across:
+            continue
         rect_mask = np.zeros(gray.shape, np.uint8)
         cv2.fillPoly(rect_mask, [quad.astype(np.int32)], 255)
         inside = rect_mask > 0
