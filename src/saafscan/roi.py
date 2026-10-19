@@ -17,6 +17,9 @@ ZONE_NOMINAL: dict[str, tuple[int, int, int]] = {
 STRIP_SIZE = (360, 90)  # canonical (width, height)
 _ZONE_SPAN = 0.55  # fraction of each band sampled (inner region)
 
+# Left to right, as the strip is read. Not a set: the order is the verdict.
+ZONE_NAMES = ("control", "starch", "detergent")
+
 # Long/short aspect accepted by detect_strip. Anything outside this window is
 # never considered a strip: below it a bright rectangle looks too square to be
 # one, above it the object is too narrow to carry three readable zones.
@@ -96,7 +99,7 @@ def zones_from_strip(strip: np.ndarray) -> dict[str, tuple[float, float, float]]
     """Mean RGB of the three reaction zones in a canonical strip image."""
     width = strip.shape[1]
     band = width / 3.0
-    names = ("control", "starch", "detergent")
+    names = ZONE_NAMES
     out: dict[str, tuple[float, float, float]] = {}
     h = strip.shape[0]
     y0, y1 = int(0.3 * h), int(0.7 * h)
@@ -105,6 +108,27 @@ def zones_from_strip(strip: np.ndarray) -> dict[str, tuple[float, float, float]]
         cx1 = int((i + 1) * band - (1 - _ZONE_SPAN) / 2 * band)
         out[name] = tuple(float(c) for c in strip[y0:y1, cx0:cx1].reshape(-1, 3).mean(axis=0))
     return out
+
+
+def zone_window_mm() -> dict[str, tuple[float, float, float, float]]:
+    """The part of each zone that :func:`zones_from_strip` actually averages.
+
+    Returned as ``(x0, x1, y0, y1)`` in millimetres from a strip's left edge and
+    top, for a strip cut to :data:`STRIP_PHYSICAL_MM`.
+
+    Printed artwork needs this because the zone colour is a **mean** over the
+    window: any ink drawn inside it biases the reading and moves the verdict.
+    Deriving the template's aiming marks from here rather than from the strip's
+    thirds is what keeps the two from drifting apart — the squares can then sit
+    just outside the measurement while still telling an operator where to aim.
+    """
+    long_mm, short_mm = STRIP_PHYSICAL_MM[1], STRIP_PHYSICAL_MM[0]
+    band = long_mm / 3.0
+    pad = (1.0 - _ZONE_SPAN) / 2.0 * band
+    y0, y1 = 0.3 * short_mm, 0.7 * short_mm
+    return {
+        name: (i * band + pad, (i + 1) * band - pad, y0, y1) for i, name in enumerate(ZONE_NAMES)
+    }
 
 
 def extract_zones(image: np.ndarray) -> dict[str, tuple[float, float, float]]:
