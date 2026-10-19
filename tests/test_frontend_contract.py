@@ -87,7 +87,7 @@ def test_demo_container_rules_do_not_leak_onto_demo_buttons() -> None:
     layout = (FRONTEND / "css" / "layout.css").read_text(encoding="utf-8")
     components = (FRONTEND / "css" / "components.css").read_text(encoding="utf-8")
     for name, css in (("layout.css", layout), ("components.css", components)):
-        offenders = re.findall(rf"#capture-panel\s+\.demo\b", css)
+        offenders = re.findall(r"#capture-panel\s+\.demo\b", css)
         assert offenders == [], (
             f"{name}: '#capture-panel .demo' also matches button.btn.demo — "
             "use '#capture-panel > .demo' (the container is a direct child)"
