@@ -205,7 +205,7 @@ Procurement list (non-code items the live demo needs):
 |---|---|---|---|
 | 1 | **Iodine solution** (tincture/Lugol's, dilute) | starch test — blue-black complex | pharmacy / lab supplier; keep away from eyes; carry in a sealed small bottle |
 | 2 | **Methylene blue** solution | detergent test — decolourisation | lab chemical supplier; small quantity only |
-| 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut **20 × 80 mm (4:1)** — the detector's aspect gate is 2.5–9.0 and `STRIP_SIZE` is 360×90, so 4:1 matches the trained geometry; 8×80 is aspect 10 and is rejected. **Print `assets/strip_template.png` at 100% to get sixteen at a time**, each with its three zones already marked. Lay the strip **lengthways, long edge left-to-right**: a strip laid end-to-end down the frame is refused rather than misread. ~20 strips for the day |
+| 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut **20 × 80 mm (4:1)** — the detector's aspect gate is 2.5–9.0 and `STRIP_SIZE` is 360×90, so 4:1 matches the trained geometry; 8×80 is aspect 10 and is rejected. **Print `assets/strip_template.png` at 100% to get sixteen at a time**, each with a printed red control reference plus two dotted reagent boxes — leave the red box dry. Lay the strip **lengthways, long edge left-to-right**: a strip laid end-to-end down the frame is refused rather than misread. ~20 strips for the day |
 | 4 | **Printed colour calibration card** | white-balance + ΔE reference | print on matte photo paper, never glossy (glare breaks detection); ≥2 spares. **Which way up it lies no longer matters** — detection checks all four rotations, so a judge can pick it up and put it down at any angle |
 | 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 23 Oct in labelled cups; bring iodine/starch control |
 | 6 | **Second phone (backup)** | camera failure fallback | pre-tested with the app before leaving |
@@ -229,10 +229,11 @@ the first time the pipeline sees your room.
 
     python -m saafscan.printstrip --out strip_template.png
 
-`assets/strip_template.png` already contains it: sixteen strips per A4, each
-carrying three dotted squares labelled *control / starch / detergent*. Print at
-**100 % / actual size** with "fit to page" off, cut on the outlines, apply each
-reagent inside its box, then dip. One sheet is a whole day of samples.
+`assets/strip_template.png` already contains it: sixteen strips per A4. The
+**red box is a printed reference patch — leave it dry.** Only the two dotted
+boxes take reagent, one each. Print at **100 % / actual size** with "fit to page"
+off, cut on the outlines, then dip the whole strip. One sheet is a whole day of
+samples.
 
 The strip is read as three equal thirds — 0–26.7, 26.7–53.3 and 53.3–80 mm on an
 80 mm strip — and each third is sampled only across its **middle 55 %**, so the
@@ -241,6 +242,14 @@ sit 0.5 mm *proud* of those bands, which is the whole point: reagent inside a
 square is guaranteed to cover the window, while no ink falls inside it to bias
 the mean colour the verdict is computed from. `saafscan.printstrip` derives them
 from `roi.zone_window_mm`, so the artwork cannot drift away from the detector.
+
+The red box is the exception, and is filled solid because there the ink *is* the
+measurement. It carries `ZONE_NOMINAL["control"]` — the exact colour
+`classify_zones` measures the control band against — so the reference is present
+on every strip by construction. Loading it by hand is what `photo4.jpeg` priced:
+with no control mark the window read blank paper, ΔE 79.8 against nominal, and
+the strip was refused before its chemistry was ever considered. Printing it also
+means no reagent is spent on the one zone that never reacts.
 
 Colour placed at 10 / 25 / 42 mm reads back **one zone shifted**: the marking
 meant for the detergent zone falls inside the starch band, and the detergent

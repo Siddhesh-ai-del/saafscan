@@ -19,6 +19,8 @@ from math import ceil, floor
 import numpy as np
 
 from saafscan.printstrip import (
+    CONTROL_COLOUR,
+    CONTROL_ZONE,
     DEFAULT_DPI,
     PROUD_MM,
     SHEET_MM,
@@ -29,22 +31,54 @@ from saafscan.printstrip import (
     strip_size_px,
     zone_windows_proud,
 )
-from saafscan.roi import STRIP_PHYSICAL_MM, zone_window_mm, zones_from_strip
+from saafscan.roi import (
+    STRIP_PHYSICAL_MM,
+    ZONE_NAMES,
+    ZONE_NOMINAL,
+    zone_window_mm,
+    zones_from_strip,
+)
 
 ZONES = ("control", "starch", "detergent")
 
 
-def test_printing_a_strip_cannot_change_a_zone_reading() -> None:
+def test_the_reagent_windows_stay_pure_paper() -> None:
     """No ink may fall inside a window the pipeline averages.
 
     zones_from_strip takes the mean colour of each window, so an outline drawn
     inside it would bias that mean and quietly shift the verdict. The squares
     are drawn proud of the window instead, which keeps the artwork out of the
     measurement while still showing an operator where to aim.
+
+    Control is exempt by design: it is printed solid, and there the ink *is*
+    the measurement. See the next test.
     """
     zones = zones_from_strip(render_strip(*strip_size_px()))
-    for name in ZONES:
+    for name in ("starch", "detergent"):
         np.testing.assert_allclose(zones[name], (255.0, 255.0, 255.0), atol=0.5, err_msg=name)
+
+
+def test_the_control_window_is_the_printed_reference_colour() -> None:
+    """The control box is printed solid in the colour the guard compares against.
+
+    A control zone loaded by hand is a control zone sometimes not loaded at
+    all, and photo4 proved the cost: with no control mark the window read blank
+    paper, a deltaE of 79.8 against nominal, and the strip was refused before
+    its chemistry was ever considered. Printing the control makes the reference
+    present on every strip by construction.
+
+    It must be ZONE_NOMINAL specifically, not merely some red, because that is
+    the colour classify_zones measures against. Print a control it does not
+    recognise and every strip refuses.
+    """
+    zones = zones_from_strip(render_strip(*strip_size_px()))
+    np.testing.assert_allclose(zones[CONTROL_ZONE], CONTROL_COLOUR, atol=0.5, err_msg=CONTROL_ZONE)
+
+
+def test_the_printed_control_is_named_and_coloured_consistently() -> None:
+    """Guards against the printed control drifting away from the classifier."""
+    assert CONTROL_ZONE in ZONE_NAMES
+    assert CONTROL_COLOUR == ZONE_NOMINAL[CONTROL_ZONE]
 
 
 def test_each_square_covers_the_window_it_aims_at() -> None:

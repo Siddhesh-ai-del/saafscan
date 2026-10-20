@@ -7,11 +7,15 @@ and the rule table answered `both` with 0.71 confidence for a strip that had
 never held detergent. Nobody can place drops to ±4 mm by eye, so the placement
 has to be printed rather than remembered.
 
-These are three dotted squares, one per zone, at the millimetres
-:func:`saafscan.roi.zones_from_strip` actually averages. The squares sit half a
+Two of the boxes are dotted squares, one per reagent, at the millimetres
+:func:`saafscan.roi.zones_from_strip` actually averages. They sit half a
 millimetre *proud* of each measurement window: reagent applied inside a square
 is guaranteed to cover the band, while no ink falls inside it to bias the mean
 colour the verdict is computed from.
+
+The third box, the control, is printed solid instead — see ``CONTROL_COLOUR``.
+It holds no reagent at all. It is a reference patch, so it carries the
+classifier's own nominal colour by construction and needs no dye.
 
 Print at **100 % / actual size** and disable "fit to page" — every dimension
 here is a millimetre, and a scaled print moves the squares off the strip.
@@ -28,7 +32,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from saafscan.roi import STRIP_PHYSICAL_MM, ZONE_NAMES, zone_window_mm
+from saafscan.roi import (
+    STRIP_PHYSICAL_MM,
+    ZONE_NAMES,
+    ZONE_NOMINAL,
+    zone_window_mm,
+)
 
 # A4 portrait, mm.
 SHEET_MM: tuple[float, float] = (210.0, 297.0)
@@ -43,10 +52,20 @@ GAP_MM = 1.6
 DEFAULT_DPI = 300
 INK = np.array([110, 110, 110], dtype=np.uint8)
 
+# The control box is printed solid rather than left as an aiming outline. It is
+# the reference classify_zones measures against, so it is filled with that
+# reference rather than a colour chosen here: print a control the guard does not
+# recognise and every strip is refused as inconclusive. Left as an outline it is
+# also a zone an operator must remember to load, and photo4 priced that — with no
+# control mark the window read blank paper, deltaE 79.8 against nominal, and the
+# strip was refused before its chemistry was ever considered.
+CONTROL_ZONE = ZONE_NAMES[0]
+CONTROL_COLOUR = ZONE_NOMINAL[CONTROL_ZONE]
+
 _HEADER = (
     "PRINT AT 100% / ACTUAL SIZE  -  turn 'fit to page' OFF",
-    "SaafScan strip template, 80 x 20 mm each  -  cut on the outlines  "
-    "-  apply each reagent inside its dotted box, then dip",
+    "80 x 20 mm each  -  cut on the outlines  -  the RED box is a printed "
+    "reference: leave it dry  -  apply reagent only in the other two boxes",
 )
 
 
@@ -89,14 +108,21 @@ def strips_per_sheet() -> int:
     return cols * rows
 
 
-def _stroke(image: np.ndarray, x0: float, y0: float, x1: float, y1: float) -> None:
-    """Draw an axis-aligned mark, clamped to the canvas."""
+def _fill(
+    image: np.ndarray, x0: float, y0: float, x1: float, y1: float, rgb: tuple[int, int, int]
+) -> None:
+    """Paint an axis-aligned block, clamped to the canvas."""
     height, width = image.shape[:2]
     left = max(0, min(int(round(x0)), width - 1))
     right = max(left + 1, min(int(round(x1)), width))
     top = max(0, min(int(round(y0)), height - 1))
     bottom = max(top + 1, min(int(round(y1)), height))
-    image[top:bottom, left:right] = INK
+    image[top:bottom, left:right] = rgb
+
+
+def _stroke(image: np.ndarray, x0: float, y0: float, x1: float, y1: float) -> None:
+    """Draw an axis-aligned mark in the template ink."""
+    _fill(image, x0, y0, x1, y1, INK)
 
 
 def _dotted_box(image: np.ndarray, x0: float, y0: float, x1: float, y1: float, sx: float) -> None:
@@ -122,11 +148,15 @@ def _dotted_box(image: np.ndarray, x0: float, y0: float, x1: float, y1: float, s
 
 
 def render_strip(width_px: int, height_px: int) -> np.ndarray:
-    """One strip's artwork: white paper and three dotted aiming squares.
+    """One strip's artwork: white paper, two dotted aiming squares, one solid one.
 
     Nothing else is drawn on the strip itself. Labels and cut outlines belong to
     :func:`render_sheet` because they would be ink sitting in the paper that the
     milk can dissolve and the camera can then read back as reaction colour.
+
+    The control box is filled solid and the two reagent boxes are not, which is
+    the whole asymmetry: reagent goes in the empty ones, nothing goes in the red
+    one, and the red one is already exactly what the classifier expects to see.
     """
     if width_px <= 0 or height_px <= 0:
         raise ValueError("strip dimensions must be positive pixels")
@@ -134,7 +164,14 @@ def render_strip(width_px: int, height_px: int) -> np.ndarray:
     strip = np.full((height_px, width_px, 3), 255, dtype=np.uint8)
     sx = width_px / STRIP_PHYSICAL_MM[1]
     sy = height_px / STRIP_PHYSICAL_MM[0]
-    for x0, x1, y0, y1 in zone_windows_proud().values():
+    for name, (x0, x1, y0, y1) in zone_windows_proud().items():
+        # Fill the proud box rather than the window. Half a millimetre of
+        # misalignment still lands entirely on solid colour, so the reference
+        # stays stable; past that the reading degrades sharply, which is the
+        # guard working — a strip that far out of position cannot have its
+        # other two zones trusted either.
+        if name == CONTROL_ZONE:
+            _fill(strip, x0 * sx, y0 * sy, x1 * sx, y1 * sy, CONTROL_COLOUR)
         _dotted_box(strip, x0 * sx, y0 * sy, x1 * sx, y1 * sy, sx)
     return np.ascontiguousarray(strip)
 
@@ -254,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{STRIP_PHYSICAL_MM[1]:g} x {STRIP_PHYSICAL_MM[0]:g} mm"
     )
     print("PRINT AT 100% / ACTUAL SIZE with 'fit to page' OFF — scaled print moves the squares")
-    print("cut on the outlines, apply each reagent inside its dotted box, then dip")
+    print("cut on the outlines; leave the red reference box dry; dip the whole strip")
     return 0
 
 
