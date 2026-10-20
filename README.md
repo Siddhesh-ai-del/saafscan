@@ -10,7 +10,7 @@ can be exported as a PDF + QR report.
 
 > **Prototype status.** This repository is the Round-1 prototype. Colour thresholds are
 > validated against **synthetic** reagent scenes. See
-> [Physical kit for 23 Oct](#physical-kit-for-23-oct) — the final demo must run on real
+> [Physical kit for 24 Oct](#physical-kit-for-24-oct) — the final demo must run on real
 > reagent strips.
 
 ## Quickstart (cold start = one command)
@@ -192,10 +192,10 @@ Train on it the same way as synthetic:
 partial shoot fails loudly rather than producing a model that maps argmax to
 the wrong labels.
 
-## Physical kit for 23 Oct
+## Physical kit for 24 Oct
 
 > ⚠️ **Synthetic demo mode is for Round-1 screenshots and dry-run rehearsal only.**
-> The **23 Oct final at PCCOE must run on real reagent strips** with real samples.
+> The **24 Oct final at PCCOE must run on real reagent strips** with real samples.
 > The synthetic path exists so the UI, pipeline, latency and screenshots can be built and
 > rehearsed before the consumables arrive — it is **not** the demo.
 
@@ -207,7 +207,7 @@ Procurement list (non-code items the live demo needs):
 | 2 | **Methylene blue** solution | detergent test — decolourisation | lab chemical supplier; small quantity only |
 | 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut **20 × 80 mm (4:1)** — the detector's aspect gate is 2.5–9.0 and `STRIP_SIZE` is 360×90, so 4:1 matches the trained geometry; 8×80 is aspect 10 and is rejected. **Print `assets/strip_template.png` at 100% to get sixteen at a time**, each with a printed red control reference plus two dotted reagent boxes — leave the red box dry. Lay the strip **lengthways, long edge left-to-right**: a strip laid end-to-end down the frame is refused rather than misread. ~20 strips for the day |
 | 4 | **Printed colour calibration card** | white-balance + ΔE reference | print on matte photo paper, never glossy (glare breaks detection); ≥2 spares. **Which way up it lies no longer matters** — detection checks all four rotations, so a judge can pick it up and put it down at any angle |
-| 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 23 Oct in labelled cups; bring iodine/starch control |
+| 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 24 Oct in labelled cups; bring iodine/starch control |
 | 6 | **Second phone (backup)** | camera failure fallback | pre-tested with the app before leaving |
 | 7 | **Mid-grey shooting backdrop** (grey cloth, grey T-shirt, charcoal/olive notebook) | card + strip detection | Surface luma must land in **50–170 after white-balance**. Below 50 the card's black frame merges into the background; above 170 the white strip merges into it. Light kraft/tan paper reads ~190 once the colour cast is corrected and fails — this range was measured through the pipeline, not guessed. Bring one to the venue rather than hoping PCCOE has a suitable table |
 | 8 | Extra: zip bags, dropper/pipette, gloves, printed verdict QR card, power bank | logistics | demo hygiene + 3-hour buffer |

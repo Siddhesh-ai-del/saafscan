@@ -44,8 +44,8 @@ for _ in $(seq 1 60); do
     echo "  1. Open the URL above (use the laptop camera, or upload a photo)."
     echo "  2. Demo mode buttons (pure / starch / detergent) run the real pipeline"
     echo "     on synthetic strips — Round-1 screenshots + rehearsal only."
-    echo "  3. For 23 Oct, use REAL reagent strips — see README"
-    echo "     'Physical kit for 23 Oct'."
+    echo "  3. For 24 Oct, use REAL reagent strips — see README"
+    echo "     'Physical kit for 24 Oct'."
     echo
     echo "Ctrl+C stops the server."
     wait "$SERVER_PID"

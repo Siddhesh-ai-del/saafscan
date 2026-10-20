@@ -5,7 +5,7 @@ strip under mild lighting variation, plus an adversarial photo-like image with
 neither (the 'judge uploads a selfie' case).
 
 ⚠️ Synthetic scenes exist for Round-1 screenshots and dry-run rehearsal only.
-The 23 Oct final demo must run on real reagent strips (see README).
+The 24 Oct final demo must run on real reagent strips (see README).
 """
 
 from __future__ import annotations

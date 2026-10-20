@@ -1,7 +1,7 @@
 """RED tests: per-stage pipeline diagnostics for real photographs.
 
 The app's analyze() stops at the first failure with a one-line message. That is
-correct behaviour for users, but when a real strip photo is rejected on 23 Oct
+correct behaviour for users, but when a real strip photo is rejected on 24 Oct
 it says only *that* the card or strip was missing — not how close detection
 came. These tests pin a diagnostic report that records what each stage saw.
 """
@@ -179,7 +179,7 @@ def test_image_stage_rejects_a_value_that_is_not_an_image() -> None:
 
 
 def test_strip_failure_is_reported_while_the_card_still_counts() -> None:
-    """Card in frame, strip missing or out of shot — the 23 Oct misfire case."""
+    """Card in frame, strip missing or out of shot — the 24 Oct misfire case."""
     image = render_sample("starch", seed=7)
     quad = detect_strip(image)
     assert quad is not None  # baseline: the scene does contain a strip
@@ -200,7 +200,7 @@ def test_strip_failure_is_reported_while_the_card_still_counts() -> None:
 
 
 # --------------------------------------------------------------------------
-# command line: this is what actually gets run on 23 Oct
+# command line: this is what actually gets run on 24 Oct
 # --------------------------------------------------------------------------
 def test_cli_exits_zero_and_prints_every_stage(tmp_path: Path, capsys) -> None:
     photo = tmp_path / "good.png"
