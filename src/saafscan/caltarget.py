@@ -8,9 +8,14 @@ chemistry to go wrong, so if a printed `detergent` target photographs and
 reads back as detergent, the whole imaging chain is proven and any later
 failure is unambiguously the chemistry.
 
-The targets are drawn by :mod:`saafscan.printstrip`, not from a second set of
-coordinates, so a printed target is the *same physical object* as the real
-strip it stands in for — control patch, window geometry, and all.
+Two things make the target trustworthy rather than merely pretty:
+
+* it is drawn by :mod:`saafscan.printstrip`, not from a second set of
+  coordinates, so a printed target is the *same physical object* as the real
+  strip it stands in for — control patch, window geometry, and all;
+* its colours come from :func:`saafscan.synthetic.zone_colours`, the same
+  function that renders the training strip. Train on it, print it, and the
+  classifier can only ever be tested on the object it was taught.
 
     python -m saafscan.caltarget --out assets/caltargets.png
 
@@ -26,80 +31,13 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from saafscan.classifier import CLEAR, FIRED
-from saafscan.color import delta_e
-from saafscan.printstrip import (
-    CONTROL_COLOUR,
-    DEFAULT_DPI,
-    sheet_size_px,
-)
-from saafscan.printstrip import (
-    render_sheet as _template_sheet,
-)
-from saafscan.printstrip import (
-    render_strip as _template_strip,
-)
-from saafscan.roi import ZONE_NAMES, ZONE_NOMINAL
-from saafscan.synthetic import REACTION_COLOURS, TRAINING_CLASSES
+from saafscan.printstrip import DEFAULT_DPI, sheet_size_px
+from saafscan.printstrip import render_sheet as _template_sheet
+from saafscan.printstrip import render_strip as _template_strip
+from saafscan.synthetic import TRAINING_CLASSES, zone_colours
 
 # One target per class the model can emit.
 TARGETS: tuple[str, ...] = TRAINING_CLASSES
-
-# Ambiguous chemistry is a *band*, CLEAR..FIRED, not a threshold. Aim the
-# ambiguous target at the middle of it so it stays as far from either edge as
-# an ambiguous strip can be — one sitting a whisker under FIRED would pass by
-# luck rather than test the refusal we actually care about.
-AMBIGUOUS_DELTA_E = (CLEAR + FIRED) / 2.0
-
-_BISECTIONS = 40
-
-
-def ambiguous_colour(name: str) -> tuple[int, int, int]:
-    """A colour sitting ``AMBIGUOUS_DELTA_E`` from ``name``'s nominal.
-
-    Bisected on the real :func:`saafscan.color.delta_e` rather than blended on
-    RGB, because ΔE is not linear in RGB: an evenly spaced blend lands nowhere
-    near the band it is aiming at.
-    """
-    reacted = REACTION_COLOURS["both"].get(name)
-    if reacted is None:
-        raise ValueError(f"no reaction model for zone: {name!r}")
-    start = np.asarray(ZONE_NOMINAL[name], dtype=np.float64)
-    end = np.asarray(reacted, dtype=np.float64)
-
-    lo, hi = 0.0, 1.0
-    for _ in range(_BISECTIONS):
-        mid = (lo + hi) / 2.0
-        if delta_e(start + (end - start) * mid, start) < AMBIGUOUS_DELTA_E:
-            lo = mid
-        else:
-            hi = mid
-    blend = (start + (end - start) * (lo + hi) / 2.0).round()
-    return tuple(int(c) for c in blend)
-
-
-def zone_colours(label: str) -> dict[str, tuple[int, int, int]]:
-    """The three zone colours a printed target for ``label`` carries.
-
-    ``inconclusive`` is not a reaction, it is the classifier refusing to guess,
-    so it cannot be drawn as one. It is drawn as *both* reagent zones partway
-    reacted, which is what an expired strip or a half-dipped sample looks like.
-    """
-    if label not in TARGETS:
-        raise ValueError(f"unknown target: {label!r}")
-
-    reacted = REACTION_COLOURS.get(label, {})
-    ambiguous = label == "inconclusive"
-    return {
-        name: (
-            CONTROL_COLOUR
-            if name == "control"
-            else ambiguous_colour(name)
-            if ambiguous
-            else reacted.get(name, ZONE_NOMINAL[name])
-        )
-        for name in ZONE_NAMES
-    }
 
 
 def render_strip(width_px: int, height_px: int, label: str) -> np.ndarray:

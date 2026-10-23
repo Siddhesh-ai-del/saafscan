@@ -24,17 +24,17 @@
     "detergent_g",
     "detergent_b"
   ],
-  "temperature": 1.2106377645736817,
+  "temperature": 2.3353313047466404,
   "abstain_threshold": 0.55,
-  "n_train": 400,
-  "n_val": 89,
-  "trained_at": "2026-10-10T14:00:52+00:00",
+  "n_train": 405,
+  "n_val": 90,
+  "trained_at": "2026-10-23T08:17:31+00:00",
   "metrics": {
     "held_out_lighting": {
       "n": 45,
-      "accuracy": 1.0,
-      "coverage": 0.8,
-      "abstained": 9,
+      "accuracy": 0.9333333333333333,
+      "coverage": 0.7333333333333333,
+      "abstained": 12,
       "confusion": [
         [
           9,
@@ -45,17 +45,17 @@
         ],
         [
           0,
-          9,
+          8,
           0,
           0,
-          0
+          1
         ],
         [
           0,
           0,
-          9,
+          7,
           0,
-          0
+          2
         ],
         [
           0,

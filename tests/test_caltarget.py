@@ -8,9 +8,11 @@ chemistry to go wrong, so if a printed `detergent` target photographs and
 reads back as detergent, the whole imaging chain is proven, and any later
 failure is unambiguously the chemistry.
 
-The targets are drawn with :mod:`saafscan.printstrip`'s geometry, not
-synthetic.py's, so a printed target is the *same physical object* as the real
-strip it stands in for.
+Drawn with :mod:`saafscan.printstrip`'s geometry and coloured by
+:func:`saafscan.synthetic.zone_colours`, so a printed target is the *same
+physical object* as the real strip it stands in for and the *same* strip the
+classifier was trained on. Those two were once allowed to drift apart, and the
+model learned the drawing instead of the chemistry.
 """
 
 from __future__ import annotations
@@ -20,7 +22,6 @@ import pytest
 
 from saafscan.caltarget import (
     TARGETS,
-    ambiguous_colour,
     render_sheet,
     render_strip,
     target_page,
@@ -31,7 +32,7 @@ from saafscan.color import delta_e
 from saafscan.printstrip import CONTROL_COLOUR, sheet_header
 from saafscan.printstrip import render_strip as render_template
 from saafscan.roi import STRIP_SIZE, ZONE_NOMINAL, zones_from_strip
-from saafscan.synthetic import REACTION_COLOURS
+from saafscan.synthetic import training_strip_canvas
 
 
 def test_there_is_one_target_per_class_the_model_can_emit() -> None:
@@ -105,32 +106,21 @@ def test_the_inconclusive_target_is_ambiguous_not_a_near_miss() -> None:
 
     Ambiguity is the classifier's refusal to guess, so a target that happens
     to land a whisker under the threshold would be an accidental pass rather
-    than a test of the behaviour we care about.
+    than a test of the behaviour we care about. One zone doubtful and one
+    clean is also the shape a real half-dipped strip has, and the rule table
+    calls it inconclusive on either zone alone.
     """
-    for name in ("starch", "detergent"):
-        d = delta_e(
-            np.asarray(zone_colours("inconclusive")[name], np.float32),
-            np.asarray(ZONE_NOMINAL[name], np.float32),
-        )
-        assert CLEAR <= d < FIRED, f"{name}: {d:.1f} outside the ambiguity band"
+    starch = delta_e(
+        np.asarray(zone_colours("inconclusive")["starch"], np.float32),
+        np.asarray(ZONE_NOMINAL["starch"], np.float32),
+    )
+    assert CLEAR <= starch < FIRED, f"starch: {starch:.1f} outside the ambiguity band"
 
-
-def test_the_ambiguous_colour_sits_between_nominal_and_reacted() -> None:
-    """Derived, not invented — interpolate towards the reaction and stop.
-
-    Strictly between the two endpoints, at neither. Where it lands along the
-    run depends on how far apart that zone's endpoints are (97.7 ΔE for
-    starch, 74.1 for detergent), so 'nearer the unreacted end' would be a
-    claim about the chemistry rather than about the geometry.
-    """
-    for name in ("starch", "detergent"):
-        nom = np.asarray(ZONE_NOMINAL[name], np.float32)
-        reacted = np.asarray(REACTION_COLOURS["both"][name], np.float32)
-        colour = np.asarray(ambiguous_colour(name), np.float32)
-
-        along = float(np.dot(colour - nom, reacted - nom) / np.dot(reacted - nom, reacted - nom))
-        assert 0.0 < along < 1.0, f"{name}: fraction {along:.2f} off the segment"
-        assert not np.allclose(colour, nom) and not np.allclose(colour, reacted), name
+    detergent = delta_e(
+        np.asarray(zone_colours("inconclusive")["detergent"], np.float32),
+        np.asarray(ZONE_NOMINAL["detergent"], np.float32),
+    )
+    assert detergent < CLEAR, "the untouched zone must still read as untouched"
 
 
 def test_a_printed_target_reads_back_as_its_own_class() -> None:
@@ -164,6 +154,24 @@ def test_the_target_sheet_does_not_instruct_reagent_application() -> None:
     assert "apply reagent" in template[1]
     assert "COLOUR REFERENCE ONLY" in target[1]
     assert "never ingest these" in target[1]
+
+
+def test_the_training_strip_is_the_strip_we_print() -> None:
+    """Train on exactly the object the camera will be shown.
+
+    They already diverged once: synthetic drew solid bands with no dotted
+    rules on a 238-grey page while the printer puts proud boxes and dotted
+    rules on white paper. The model learned the drawing rather than the
+    chemistry — 1.000 on held-out synthetic lighting, but 2/5 on the real
+    printed strips it would actually be shown. Pixel equality, not
+    similarity, is the guarantee that cannot drift apart again.
+    """
+    for label in TARGETS:
+        np.testing.assert_array_equal(
+            training_strip_canvas(label),
+            render_strip(*STRIP_SIZE, label),
+            err_msg=label,
+        )
 
 
 def test_strip_dimensions_must_be_positive() -> None:

@@ -234,16 +234,36 @@ def split_for_condition(condition: LightingCondition) -> str:
     return _SPLIT_BY_SEED[condition.seed % 10]
 
 
-def _zones_for_training(label: str) -> dict[str, tuple[int, int, int]]:
-    """Nominal or reacted zone colours, plus an ambiguous 'inconclusive' case."""
+def zone_colours(label: str) -> dict[str, tuple[int, int, int]]:
+    """Zone colours for one strip class — the single source of truth.
+
+    Renders *both* the synthetic training strip and the printed calibration
+    target, so the classifier can only ever be trained on exactly the object
+    it will later be photographed as. The two once diverged: synthetic drew
+    solid bands on a 238-grey page while the printer produced proud boxes and
+    dotted rules on white paper, and the model learned the drawing rather than
+    the chemistry — 1.000 on held-out synthetic lighting against 2/5 on the
+    real printed strips.
+
+    Raises:
+        ValueError: If ``label`` is not a class the model can emit.
+    """
+    if label not in TRAINING_CLASSES:
+        raise ValueError(f"unknown strip label: {label!r}")
     if label == "inconclusive":
-        # Partial reaction: halfway between nominal and fully reacted, which the
-        # rule table reads as ambiguous — the perfect abstain training example.
+        # Partial reaction: starch halfway to fully reacted, which measures
+        # 45.4 ΔE — inside the CLEAR..FIRED band the rule table calls
+        # ambiguous. Detergent is left unreacted, so one zone is doubtful and
+        # one is not: the shape a real half-dipped strip actually has.
         return {
             "control": ZONE_NOMINAL["control"],
             "starch": tuple(
                 int(round(0.5 * a + 0.5 * b))
-                for a, b in zip(ZONE_NOMINAL["starch"], REACTION_COLOURS["both"]["starch"], strict=True)
+                for a, b in zip(
+                    ZONE_NOMINAL["starch"],
+                    REACTION_COLOURS["both"]["starch"],
+                    strict=True,
+                )
             ),
             "detergent": ZONE_NOMINAL["detergent"],
         }
@@ -287,7 +307,7 @@ def render_training_scene(label: str, condition: LightingCondition, seed: int = 
     _paste(
         scene,
         cv2.resize(
-            _training_strip_canvas(label),
+            training_strip_canvas(label),
             None,
             fx=TRAINING_STRIP_SCALE,
             fy=TRAINING_STRIP_SCALE,
@@ -301,20 +321,19 @@ def render_training_scene(label: str, condition: LightingCondition, seed: int = 
     return _apply_lighting(scene, condition, rng)
 
 
-def _training_strip_canvas(label: str) -> np.ndarray:
-    """Strip canvas using the training zone colours (incl. inconclusive)."""
+def training_strip_canvas(label: str) -> np.ndarray:
+    """The strip as the printer draws it, in that class's colours.
+
+    Delegated to :func:`saafscan.printstrip.render_strip` rather than drawn
+    here, because the classifier must be trained on the object it will
+    actually be shown: proud boxes, dotted rules, white paper. Hand-drawing
+    bands instead taught it to recognise a strip no printer can make, which
+    is why it abstained on every real one.
+    """
+    from saafscan.printstrip import render_strip as print_strip
     from saafscan.roi import STRIP_SIZE
 
-    w, h = STRIP_SIZE
-    strip = np.full((h, w, 3), 238, dtype=np.uint8)
-    band = w / 3.0
-    zones = _zones_for_training(label)
-    for i, name in enumerate(("control", "starch", "detergent")):
-        colour = zones[name]
-        cx0 = int(i * band + 0.15 * band)
-        cx1 = int((i + 1) * band - 0.15 * band)
-        strip[int(0.25 * h) : int(0.75 * h), cx0:cx1] = np.array(colour, dtype=np.uint8)
-    return strip
+    return print_strip(*STRIP_SIZE, fills=zone_colours(label))
 
 
 def _apply_lighting(

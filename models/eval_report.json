@@ -11,38 +11,38 @@
       ],
       "abstain_threshold": 0.999,
       "ml": {
-        "accuracy": 1.0,
-        "selective_accuracy": 1.0,
-        "coverage": 0.8,
-        "abstained": 9,
+        "accuracy": 0.2,
+        "selective_accuracy": 0.0,
+        "coverage": 0.0,
+        "abstained": 45,
         "confusion": [
           [
-            9,
             0,
             0,
             0,
-            0
-          ],
-          [
             0,
-            9,
-            0,
-            0,
-            0
-          ],
-          [
-            0,
-            0,
-            9,
-            0,
-            0
+            9
           ],
           [
             0,
             0,
             0,
-            9,
-            0
+            0,
+            9
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            9
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            9
           ],
           [
             0,
@@ -55,58 +55,58 @@
         "coverage_curve": [
           {
             "threshold": 0.0,
-            "coverage": 0.8,
-            "accuracy": 1.0
+            "coverage": 0.7777777777777778,
+            "accuracy": 0.8857142857142857
           },
           {
             "threshold": 0.1,
-            "coverage": 0.8,
-            "accuracy": 1.0
+            "coverage": 0.7777777777777778,
+            "accuracy": 0.8857142857142857
           },
           {
             "threshold": 0.2,
-            "coverage": 0.8,
-            "accuracy": 1.0
+            "coverage": 0.7777777777777778,
+            "accuracy": 0.8857142857142857
           },
           {
             "threshold": 0.30000000000000004,
-            "coverage": 0.8,
-            "accuracy": 1.0
+            "coverage": 0.6666666666666666,
+            "accuracy": 0.9333333333333333
           },
           {
             "threshold": 0.4,
-            "coverage": 0.8,
+            "coverage": 0.6,
             "accuracy": 1.0
           },
           {
             "threshold": 0.5,
-            "coverage": 0.8,
+            "coverage": 0.6,
             "accuracy": 1.0
           },
           {
             "threshold": 0.6000000000000001,
-            "coverage": 0.8,
+            "coverage": 0.5111111111111111,
             "accuracy": 1.0
           },
           {
             "threshold": 0.7000000000000001,
-            "coverage": 0.8,
+            "coverage": 0.28888888888888886,
             "accuracy": 1.0
           },
           {
             "threshold": 0.8,
-            "coverage": 0.8,
+            "coverage": 0.13333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.9,
-            "coverage": 0.8,
-            "accuracy": 1.0
+            "coverage": 0.0,
+            "accuracy": 0.0
           },
           {
             "threshold": 0.999,
-            "coverage": 0.8,
-            "accuracy": 1.0
+            "coverage": 0.0,
+            "accuracy": 0.0
           },
           {
             "threshold": 1.0,
@@ -156,13 +156,13 @@
           ]
         ]
       },
-      "delta_accuracy": 0.0,
+      "delta_accuracy": -0.8,
       "active_model": "cnn",
       "dataset": {
         "split_policy": "by lighting condition (condition.seed % 10: 0-6 train, 7-8 val, 9 test) \u2014 never random images",
         "n_test_samples": 45,
         "n_test_conditions": 3,
-        "skipped_undetectable": 6,
+        "skipped_undetectable": 0,
         "classes": [
           "none",
           "starch",
@@ -182,10 +182,10 @@
       ],
       "abstain_threshold": 0.55,
       "ml": {
-        "accuracy": 1.0,
+        "accuracy": 0.9333333333333333,
         "selective_accuracy": 1.0,
-        "coverage": 0.8,
-        "abstained": 9,
+        "coverage": 0.7333333333333333,
+        "abstained": 12,
         "confusion": [
           [
             9,
@@ -196,17 +196,17 @@
           ],
           [
             0,
-            9,
+            8,
             0,
             0,
-            0
+            1
           ],
           [
             0,
             0,
-            9,
+            7,
             0,
-            0
+            2
           ],
           [
             0,
@@ -227,56 +227,56 @@
           {
             "threshold": 0.0,
             "coverage": 0.8,
-            "accuracy": 1.0
+            "accuracy": 0.9722222222222222
           },
           {
             "threshold": 0.1,
             "coverage": 0.8,
-            "accuracy": 1.0
+            "accuracy": 0.9722222222222222
           },
           {
             "threshold": 0.2,
             "coverage": 0.8,
-            "accuracy": 1.0
+            "accuracy": 0.9722222222222222
           },
           {
             "threshold": 0.30000000000000004,
-            "coverage": 0.8,
+            "coverage": 0.7777777777777778,
             "accuracy": 1.0
           },
           {
             "threshold": 0.4,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.5,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.55,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.6000000000000001,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.7000000000000001,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.8,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
             "threshold": 0.9,
-            "coverage": 0.8,
+            "coverage": 0.7333333333333333,
             "accuracy": 1.0
           },
           {
@@ -327,13 +327,13 @@
           ]
         ]
       },
-      "delta_accuracy": 0.0,
+      "delta_accuracy": -0.06666666666666665,
       "active_model": "features",
       "dataset": {
         "split_policy": "by lighting condition (condition.seed % 10: 0-6 train, 7-8 val, 9 test) \u2014 never random images",
         "n_test_samples": 45,
         "n_test_conditions": 3,
-        "skipped_undetectable": 6,
+        "skipped_undetectable": 0,
         "classes": [
           "none",
           "starch",
