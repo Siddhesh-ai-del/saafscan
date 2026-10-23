@@ -46,7 +46,7 @@ MAX_SCENE_SKEW = 3.5
 TRAINING_STRIP_SCALE = 1.15
 
 # Reaction outcomes: how each reagent zone looks after the reaction.
-_REACTED = {
+REACTION_COLOURS = {
     "starch": {"starch": (45, 40, 95)},  # blue-black starch-iodine complex
     "detergent": {"detergent": (214, 216, 220)},  # methylene blue fully reduced (near-colourless)
     "both": {"starch": (45, 40, 95), "detergent": (214, 216, 220)},
@@ -78,7 +78,7 @@ def _strip_canvas(label: str) -> np.ndarray:
     w, h = STRIP_SIZE
     strip = np.full((h, w, 3), 238, dtype=np.uint8)  # white paper
     band = w / 3.0
-    reacted = _REACTED[label]
+    reacted = REACTION_COLOURS[label]
     for i, name in enumerate(("control", "starch", "detergent")):
         colour = reacted.get(name, ZONE_NOMINAL[name])
         cx0 = int(i * band + 0.15 * band)
@@ -243,11 +243,11 @@ def _zones_for_training(label: str) -> dict[str, tuple[int, int, int]]:
             "control": ZONE_NOMINAL["control"],
             "starch": tuple(
                 int(round(0.5 * a + 0.5 * b))
-                for a, b in zip(ZONE_NOMINAL["starch"], _REACTED["both"]["starch"], strict=True)
+                for a, b in zip(ZONE_NOMINAL["starch"], REACTION_COLOURS["both"]["starch"], strict=True)
             ),
             "detergent": ZONE_NOMINAL["detergent"],
         }
-    reacted = _REACTED.get(label, {})
+    reacted = REACTION_COLOURS.get(label, {})
     return {
         name: reacted.get(name, ZONE_NOMINAL[name]) for name in ("control", "starch", "detergent")
     }

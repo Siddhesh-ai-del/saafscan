@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import cv2
@@ -67,6 +68,27 @@ _HEADER = (
     "80 x 20 mm each  -  cut on the outlines  -  the RED box is a printed "
     "reference: leave it dry  -  apply reagent only in the other two boxes",
 )
+
+# Printed colour targets take no reagent at all, so they cannot carry the
+# template's instruction to apply some — a sheet that told an operator to pipette
+# onto a reference strip would be telling them to contaminate their own control.
+_CAL_HEADER = (
+    "PRINT AT 100% / ACTUAL SIZE  -  turn 'fit to page' OFF",
+    "80 x 20 mm each  -  cut on the outlines  -  COLOUR REFERENCE ONLY: no milk, "
+    "no reagent, nothing to apply  -  never ingest these",
+)
+
+
+def sheet_header(
+    strips: Sequence[tuple[str, Mapping[str, tuple[int, int, int]]]] | None = None,
+) -> tuple[str, str]:
+    """The two instruction lines a sheet carries.
+
+    Split out from :func:`render_sheet` because which of these gets printed is
+    the difference between a working procedure and an operator being told to
+    pipette reagent onto their own colour reference.
+    """
+    return _CAL_HEADER if strips is not None else _HEADER
 
 
 def zone_windows_proud() -> dict[str, tuple[float, float, float, float]]:
@@ -147,8 +169,12 @@ def _dotted_box(image: np.ndarray, x0: float, y0: float, x1: float, y1: float, s
             _stroke(image, x - half, y, x + half + 1, min(y + dash, bottom))
 
 
-def render_strip(width_px: int, height_px: int) -> np.ndarray:
-    """One strip's artwork: white paper, two dotted aiming squares, one solid one.
+def render_strip(
+    width_px: int,
+    height_px: int,
+    fills: dict[str, tuple[int, int, int]] | None = None,
+) -> np.ndarray:
+    """One strip's artwork: white paper, a solid control, two dotted boxes.
 
     Nothing else is drawn on the strip itself. Labels and cut outlines belong to
     :func:`render_sheet` because they would be ink sitting in the paper that the
@@ -157,6 +183,11 @@ def render_strip(width_px: int, height_px: int) -> np.ndarray:
     The control box is filled solid and the two reagent boxes are not, which is
     the whole asymmetry: reagent goes in the empty ones, nothing goes in the red
     one, and the red one is already exactly what the classifier expects to see.
+
+    ``fills`` paints extra boxes solid, by zone name. It exists so calibration
+    targets are drawn by *this* function and therefore land on exactly the
+    geometry a real strip does. A target drawn from a second set of numbers
+    would calibrate against a strip that cannot exist.
     """
     if width_px <= 0 or height_px <= 0:
         raise ValueError("strip dimensions must be positive pixels")
@@ -164,14 +195,16 @@ def render_strip(width_px: int, height_px: int) -> np.ndarray:
     strip = np.full((height_px, width_px, 3), 255, dtype=np.uint8)
     sx = width_px / STRIP_PHYSICAL_MM[1]
     sy = height_px / STRIP_PHYSICAL_MM[0]
+    wanted = fills or {}
     for name, (x0, x1, y0, y1) in zone_windows_proud().items():
         # Fill the proud box rather than the window. Half a millimetre of
         # misalignment still lands entirely on solid colour, so the reference
         # stays stable; past that the reading degrades sharply, which is the
         # guard working — a strip that far out of position cannot have its
         # other two zones trusted either.
-        if name == CONTROL_ZONE:
-            _fill(strip, x0 * sx, y0 * sy, x1 * sx, y1 * sy, CONTROL_COLOUR)
+        colour = CONTROL_COLOUR if name == CONTROL_ZONE else wanted.get(name)
+        if colour is not None:
+            _fill(strip, x0 * sx, y0 * sy, x1 * sx, y1 * sy, colour)
         _dotted_box(strip, x0 * sx, y0 * sy, x1 * sx, y1 * sy, sx)
     return np.ascontiguousarray(strip)
 
@@ -198,14 +231,24 @@ def _put_text(
     )
 
 
-def render_sheet(dpi: int = DEFAULT_DPI) -> np.ndarray:
+def render_sheet(
+    dpi: int = DEFAULT_DPI,
+    strips: Sequence[tuple[str, Mapping[str, tuple[int, int, int]]]] | None = None,
+) -> np.ndarray:
     """An A4 page of strip templates, RGB uint8.
 
-    Each slot carries a cut outline offset clear of the strip and a zone label
-    above it, both of which stay out of the paper itself.
+    Each slot carries a cut outline offset clear of the strip and a label above
+    it, both of which stay out of the paper itself.
+
+    With ``strips`` — a sequence of ``(caption, fills)`` — one strip is drawn
+    per entry and named above itself, leaving the remaining slots blank: a page
+    of *different* strips rather than a page of spares. The caller supplies the
+    colours so this module stays ignorant of what any of them mean.
     """
     if dpi <= 0:
         raise ValueError("dpi must be positive")
+    if strips is not None and len(strips) > strips_per_sheet():
+        raise ValueError(f"at most {strips_per_sheet()} labelled strips fit on a sheet")
 
     width_px, height_px = sheet_size_px(dpi)
     sheet = np.full((height_px, width_px, 3), 255, dtype=np.uint8)
@@ -218,13 +261,12 @@ def render_sheet(dpi: int = DEFAULT_DPI) -> np.ndarray:
     origin_y = (SHEET_MM[1] - rows * slot_h) / 2.0
 
     long_px, short_px = strip_size_px(dpi)
-    strip = render_strip(long_px, short_px)
     label_scale = 0.8 * dpi / DEFAULT_DPI
     label_thickness = max(int(round(dpi / DEFAULT_DPI)), 1)
     outline = max(int(round(CUT_OUTLINE_MM * px_per_mm)), 1)
     centres = {name: (w[0] + w[1]) / 2.0 for name, w in zone_window_mm().items()}
 
-    for index in range(strips_per_sheet()):
+    def _draw(index: int, strip: np.ndarray, caption: str | None) -> None:
         row, col = divmod(index, cols)
         left = int(round((origin_x + col * slot_w) * px_per_mm))
         top = int(round((origin_y + row * slot_h + LABEL_MM) * px_per_mm))
@@ -244,22 +286,34 @@ def render_sheet(dpi: int = DEFAULT_DPI) -> np.ndarray:
         )
 
         baseline = top - int(round(1.6 * px_per_mm))
-        for name in ZONE_NAMES:
-            cx = left + int(round(centres[name] * px_per_mm))
-            _label(sheet, name, cx, baseline, label_scale, label_thickness)
+        if caption is not None:
+            _label(sheet, caption, left + long_px // 2, baseline, label_scale, label_thickness)
+        else:
+            for name in ZONE_NAMES:
+                cx = left + int(round(centres[name] * px_per_mm))
+                _label(sheet, name, cx, baseline, label_scale, label_thickness)
+
+    if strips is None:
+        strip = render_strip(long_px, short_px)
+        for index in range(strips_per_sheet()):
+            _draw(index, strip, None)
+    else:
+        for index, (caption, fills) in enumerate(strips):
+            _draw(index, render_strip(long_px, short_px, fills=fills), caption)
 
     # Well inside the printable area: printers commonly refuse the first ~5 mm,
     # and losing the instruction block would be a silent failure at the venue.
+    header = sheet_header(strips)
     _put_text(
         sheet,
-        _HEADER[0],
+        header[0],
         (int(round(MARGIN_MM * px_per_mm)), int(round(15.0 * px_per_mm))),
         0.72 * dpi / DEFAULT_DPI,
         label_thickness,
     )
     _put_text(
         sheet,
-        _HEADER[1],
+        header[1],
         (int(round(MARGIN_MM * px_per_mm)), int(round(19.5 * px_per_mm))),
         0.48 * dpi / DEFAULT_DPI,
         label_thickness,
