@@ -251,6 +251,19 @@ Normal print quality on matte stock: a heavy-ink pass bands and streaks, and
 gloss glares. Anything flat that measures in range works — the check, not the
 material, is what makes it usable.
 
+**How to compose the frame — see it before the first shot, not from a rejected
+one:**
+
+    python -m saafscan.layoutguide --out layout_guide.png
+
+`assets/layout_guide.png` is a worked example at true scale: card upper-left,
+strip lower and **horizontal**, grey all round, with the five rules the
+detectors actually enforce printed on it. It is generated through the same
+`detect_card` and `detect_strip` the live demo runs, and the CLI re-detects its
+own output, exiting non-zero if the pipeline would reject it — so it is an
+example that works rather than one that looks like it should. That is also
+where rule 2 comes from: a strip stood on end is *refused*, never misread.
+
 The strip is read as three equal thirds — 0–26.7, 26.7–53.3 and 53.3–80 mm on an
 80 mm strip — and each third is sampled only across its **middle 55 %**, so the
 measurement bands are 5.8–20.7, 32.7–47.3 and 59.3–74.0 mm. The printed squares
