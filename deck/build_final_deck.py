@@ -1036,8 +1036,8 @@ def build() -> None:
             "Every test carries a batch id and a QR, so a distributor can scope a recall to "
             "the batches that failed instead of pulling a whole product line.",
             "",
-            "23 Oct real strips captured and the model retrained · "
-            "24 Oct final, live on real reagents.",
+            "23 Oct reagent shoot attempted, both stocks past date · "
+            "24 Oct final, live and offline.",
         ],
         hsize=10.0,
         bsize=8.8,
@@ -1116,8 +1116,8 @@ def build() -> None:
                     "Dataset and field work",
                     "534 synthetic strip images across 5 lighting conditions, plus printed "
                     "colour targets photographed to validate the imaging half before any "
-                    "chemistry. Real iodine and methylene-blue strips captured 23 October, "
-                    "the night before the final.",
+                    "chemistry. A real-reagent shoot was attempted 23 October; both stocks "
+                    "were past date, so no chemistry was run.",
                 ),
             ],
         ),
@@ -1240,10 +1240,12 @@ def build() -> None:
         1.32,
         "What we are honest about",
         [
-            "Colour thresholds are validated on synthetic reagent scenes, not yet on real "
-            "chemistry. The 24 October final runs on real iodine and methylene-blue strips "
-            "and the model is retrained on those photos first. A reading is a screening "
-            "signal, not a legal test result."
+            "The classifier is validated on synthetic reagent scenes, not real chemistry. "
+            "A 23 October shoot found both stocks past date: degraded iodine gives false "
+            "negatives, and reduced methylene blue reads colourless, which is what a "
+            "positive looks like. Running them would have yielded results we could not "
+            "separate from our own failure modes, so imaging was validated against printed "
+            "targets instead. A reading is a screening signal, not a legal test result."
         ],
         hsize=10.2,
         bsize=9.0,
@@ -1254,8 +1256,8 @@ def build() -> None:
     road = [
         ("14 Oct", "Shortlist announced"),
         ("15-22 Oct", "Printable targets, mid-grey backdrop and frame guide built"),
-        ("23 Oct", "Real strips captured, model retrained, full rehearsal"),
-        ("24 Oct", "Final, 09:00-12:00 at PCCOE, live on real reagents"),
+        ("23 Oct", "Reagent shoot attempted, both stocks past date, rehearsal"),
+        ("24 Oct", "Final, 09:00-12:00 at PCCOE, live demo, offline"),
     ]
     rw, rgap = 2.83, 0.195
     for i, (when, what) in enumerate(road):
@@ -1283,13 +1285,19 @@ def build() -> None:
 
     notes(
         s8,
-        "Close on the honest limit rather than hiding it. The organisers asked for a "
-        "solution that works, so the strongest thing to say is that the software is "
-        "finished and tested, the imaging half has been validated against photographed "
-        "printed targets, and real strips were captured on 23 October with the model "
-        "retrained on them. Do not claim the ML beats the rule table: the rule table "
-        "scores 1.000 on the held-out split and the model scores 0.933, a delta of "
-        "-0.067, so it ships on artifact size and abstention headroom instead.",
+        "Close on the honest limit rather than hiding it. The software is finished and "
+        "tested, and the imaging half has been validated against photographed printed "
+        "targets: every frame cleared every detector gate, and control-zone drift on one "
+        "frame reached 46.3 against a 45 tolerance, so the pipeline refused it rather "
+        "than diagnosing from an untrustworthy control. That refusal is the project's "
+        "core principle working on real camera input, not on a rendering. The 23 October "
+        "reagent shoot found both stocks past date, so no chemistry was run. If asked why "
+        "we did not simply run them: expired iodine gives false negatives, and methylene "
+        "blue that has already reduced reads colourless, which is exactly what a "
+        "detergent positive looks like, so every result would have been uninterpretable. "
+        "Do not claim the ML beats the rule table: the rule table scores 1.000 on the "
+        "held-out split and the model scores 0.933, a delta of -0.067, so it ships on "
+        "artifact size and abstention headroom instead.",
     )
 
     # ---------------- slide 9: closing ---------------------------------------
