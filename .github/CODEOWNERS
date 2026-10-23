@@ -1,0 +1,16 @@
+# Default owners for the SaafScan repository.
+# GitHub requires at least one owner match for review requests to work;
+# a nonexistent handle would silently block every review, so this points at
+# the repository owner.
+
+*       @Siddhesh-ai-del
+
+# Presentation decks are built by script and gated. Never hand-edit a .pptx.
+/deck/          @Siddhesh-ai-del
+
+# Training and evaluation numbers feed every public claim.
+/models/        @Siddhesh-ai-del
+
+# Community health and security policy files.
+/.github/       @Siddhesh-ai-del
+/SECURITY.md    @Siddhesh-ai-del

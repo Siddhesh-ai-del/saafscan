@@ -1,0 +1,101 @@
+name: Bug report
+description: Something in SaafScan behaved unexpectedly.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Redact personal data before attaching images.** Strip photographs can contain
+        reflections, surrounding rooms and documents. Crop or blur anything that is not
+        the strip and backdrop.
+
+        For vulnerabilities, use a
+        [private security advisory](https://github.com/Siddhesh-ai-del/saafscan/security/advisories/new)
+        instead of this form.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what occurred instead.
+      placeholder: I ran `bash start_demo.sh`, uploaded a strip photo, and got a verdict of "pure" where the control zone was clearly pink.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands or requests, numbered.
+      render: shell
+      placeholder: |
+        1. bash start_demo.sh
+        2. open http://127.0.0.1:8000
+        3. upload the attached photo
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Error output
+      description: Full traceback or response body. Do not truncate the stack.
+      render: text
+
+  - type: textarea
+    id: image
+    attributes:
+      label: Photograph involved
+      description: Attach the frame if this is a detection problem. Personal data redacted first.
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics output
+      description: |
+        For a rejected photograph, run this and attach the summary:
+        `.venv/bin/python -m saafscan.diagnostics photo.jpg --out debug/`
+      render: shell
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 24.04, macOS 15, Windows 11
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: 3.12.x
+    validations:
+      required: true
+
+  - type: input
+    id: install
+    attributes:
+      label: Install method
+      placeholder: uv sync / pip / source
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or branch
+      placeholder: main @ abc1234
+
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have redacted personal data from every attached image
+          required: true
+        - label: I searched existing issues and did not find this report
+          required: true
+        - label: This is not a security vulnerability (those go to private advisories)
+          required: true
+        - label: No secrets or credentials appear anywhere in this report
+          required: true

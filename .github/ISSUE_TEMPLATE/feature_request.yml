@@ -1,0 +1,67 @@
+name: Feature request
+description: Propose an improvement to SaafScan.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Frame the request as **the problem it solves**, not the implementation you have in
+        mind. That leaves room for a better approach than the first one either of us
+        thinks of.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Who hits this, how often, and what happens today without the change.
+      placeholder: A strip photographed through plastic packaging picks up a colour cast, and there is no way to flag that the frame was unsuitable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Optional. Describe the change if you have a specific one in mind.
+
+  - type: dropdown
+    id: principle
+    attributes:
+      label: Which principle does this advance?
+      options:
+        - Refuse rather than guess
+        - Evidence you can audit
+        - Offline by construction
+        - Costs nothing to run
+        - Accuracy or coverage
+        - Developer or operator experience
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: budget
+    attributes:
+      label: Does this stay within a £0 budget?
+      options:
+        - "Yes — free software or existing hardware only"
+        - Needs a paid dependency — justified below
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Trade-offs and risks
+      description: |
+        What could this break? Does it add a refusal path, remove one, or change how a
+        verdict is produced? Removing a refusal mechanism to raise accuracy is not an
+        acceptable trade.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional, but appreciated.

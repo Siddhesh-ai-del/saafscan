@@ -1,305 +1,203 @@
 # SaafScan
 
-**10-second adulterant detection using any phone camera.** Tech4Food 2026 · theme **Detect**.
+![License](https://img.shields.io/badge/License-Apache_2.0-0F172A?style=for-the-badge&labelColor=0F172A&logo=apache&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Prototype-0F172A?style=for-the-badge&labelColor=0F172A&logo=rocket&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-FastAPI-0F172A?style=for-the-badge&labelColor=0F172A&logo=fastapi&logoColor=white)
+![Language](https://img.shields.io/badge/Language-Python-0F172A?style=for-the-badge&labelColor=0F172A&logo=python&logoColor=white)
 
-Dip the printed reagent strip into a sample → photograph it against the printed colour
-calibration card → SaafScan auto-detects the strip, corrects lighting and perspective,
-measures each reaction zone, and returns **adulterant type + confidence + severity** in
-well under 10 seconds. Fully offline. Evidence is logged to a local append-only store and
-can be exported as a PDF + QR report.
+**Ten-second food-adulterant screening from any phone camera, fully offline, with an auditable evidence trail.**
 
-> **Prototype status.** This repository is the Round-1 prototype. Colour thresholds are
-> validated against **synthetic** reagent scenes. See
-> [Physical kit for 24 Oct](#physical-kit-for-24-oct) — the final demo must run on real
-> reagent strips.
+SaafScan reads a printed reagent strip from a single photograph. It locates the calibration card, corrects the lighting, finds the strip, measures each reaction zone and returns an adulterant verdict with confidence, severity and advice — in well under ten seconds, on a laptop CPU, with no network. When an image cannot support a verdict, it says so and stops.
 
-## Quickstart (cold start = one command)
+Tech4Food 2026 · theme **Detect** · final round 24 October 2026, PCCOE.
 
-```bash
-bash start_demo.sh
-```
+---
 
-Then open **http://127.0.0.1:8000**.
+## Overview
 
-- **Live camera** (where the browser allows it) or **file upload** of a strip photo.
-- **Demo mode**: buttons render the three synthetic samples (`pure` / `starch` /
-  `detergent`) and push them through the *real* HTTP pipeline — this is the rehearsal and
-  Round-1 screenshot path.
-- **History** shows the evidence log; every entry exports a **PDF + QR report**.
+Point-of-use screening has historically forced a choice between a fast answer you cannot trust and a lab answer you cannot afford to wait for. SaafScan is built to remove that trade-off for the two adulterants a paper reagent test can actually detect: starch and detergent.
 
-Manual startup:
+| Principle | What it means in practice |
+|---|---|
+| **Refuse rather than guess** | Two independent refusal paths — a control-zone guard and a genuine model abstention. Neither fabricates a verdict. |
+| **Evidence you can audit** | Every reading appends to a local SQLite store with no update or delete API, then exports as a PDF + QR report. |
+| **Offline by construction** | No cloud, no telemetry, no network at inference time. Nothing leaves the device. |
+| **Costs nothing to run** | The kit is printed paper and two common reagents. Target budget: £0 beyond consumables. |
+
+## Why SaafScan
+
+The problem is large, measured and current.
+
+- The World Health Organization fact sheet of 4 June 2026 records **866 million** foodborne illnesses and **1.52 million** deaths annually, an economic loss of **US$310 billion**, affecting roughly **1 in 9** people worldwide.
+- India's FSSAI reported for FY26 that **14,668 of 39,351** milk samples tested failed to conform — a **37.3%** failure rate across the samples examined.
+
+Both figures describe detection that happens *after* the product has moved. A distributor pulling a whole product line because one batch failed is the expensive version of a slow test. SaafScan exists so a reading can be taken at the point of use, in seconds, by someone without a laboratory, and still leave a record that survives scrutiny.
+
+## What it does today
+
+Shipped and covered by the test suite:
+
+- Card detection with perspective correction, and white-balance anchored on printed reference patches.
+- Strip detection with an aspect and area gate; a strip laid the wrong way is **refused, never misread**.
+- Reaction-zone colour extraction and ΔE comparison against printed nominal references.
+- A rule-table classifier and a 12-feature gradient-boosting model, with the rule table always reachable as fallback.
+- Two distinct refusal mechanisms: the control-zone guard, and model abstention below a calibrated confidence threshold.
+- Local append-only evidence log with PDF + QR report export.
+- A web interface supporting live camera capture and file upload.
+
+## Measured results
+
+All figures below are reproducible from `models/eval_report.json`, `deck/bench.json` and the test suite.
+
+| Metric | Value | Note |
+|---|---|---|
+| Held-out accuracy | **0.933** | 45 held-out samples, split by lighting condition |
+| Coverage | **0.733** | 33 of 45 answered |
+| Selective accuracy | **1.000** | on the 33 it commits to, it is right every time |
+| Rule-table baseline | **1.000** | the same split |
+| Delta, model minus rules | **−0.067** | see below |
+| Median pipeline time | **6.0 ms** | measured with `deck/bench.py` |
+| HTTP end-to-end | **19.3 ms** | median |
+| Cold start to first verdict | **0.42 s** | median |
+| Test suite | **291 passing, 90% coverage** | ruff clean |
+
+**The model does not beat the rule table, and the project does not claim it does.** Of the 12 samples the model declines, 9 are genuinely labelled inconclusive and 3 are one starch and two detergent it refused to call rather than guess. The gradient booster ships as the default on artifact size — 179 KB against 45 MB for the ResNet18 — and on abstention headroom, not on accuracy.
+
+## Project status
+
+Prototype. The core pipeline, evidence store, classifiers and reporting path are complete and tested. The imaging half has been validated against photographed printed colour targets: every frame cleared every detector gate, with surface luma measured at 117.6–124.8 inside the accepted 50–170 band.
+
+Capture and training on real reagent strips is in progress.
+
+### Roadmap
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Core pipeline: card, white-balance, strip, zones | Complete |
+| 2 | Rule-table classifier, verdict model, refusal paths | Complete |
+| 3 | Append-only evidence store and PDF + QR reporting | Complete |
+| 4 | Web interface: live camera, upload, history, report | Complete |
+| 5 | Synthetic training set, split by lighting condition | Complete |
+| 6 | Gradient booster and ResNet18, calibration, evaluation | Complete |
+| 7 | Printed-target imaging validation | Complete |
+| 8 | Real reagent strip capture, ingest, retrain | In progress |
+| 9 | Final-round demonstration, 24 October 2026 | Scheduled |
+
+## Installation
+
+Requires Python 3.12.
 
 ```bash
 uv venv --python 3.12 .venv
 uv sync --python .venv/bin/python
+bash start_demo.sh
+```
+
+Then open **http://127.0.0.1:8000**. `127.0.0.1` matters: browsers only expose the camera in a secure context, and localhost qualifies.
+
+Manual start:
+
+```bash
 .venv/bin/uvicorn saafscan.api:app --host 127.0.0.1 --port 8000
 ```
 
-## How it works
-
-```
-phone camera / upload
-   → calibration card detection (black-bordered quad, perspective warp)
-   → white-balance correction anchored on printed white/grey/black patches
-   → strip detection (elongated bright quad, perspective warp)
-   → reaction-zone colour extraction (control · starch · detergent)
-   → ΔE vs printed nominal references → classifier
-   → verdict {adulterant, confidence, severity, advice, evidence}
-   → append-only SQLite evidence log → PDF + QR report
-```
-
-Failure modes are explicit:
-
-- **No calibration card** → rejected with *"This does not appear to be a SaafScan test image"* (HTTP 422), never a fabricated verdict.
-- **Ambiguous zone colours** → verdict `inconclusive` with confidence ≤ 0.5.
-- **Oversized / non-image / empty uploads** → HTTP 422/413, no evidence entry created.
-
-## Development
+To drive a phone against the laptop without a network, reverse the port over USB:
 
 ```bash
-.venv/bin/pytest --cov=saafscan --cov-report=term-missing   # ≥80% gate
-.venv/bin/ruff check src tests                                # lint gate
-.venv/bin/python -m pytest tests/test_e2e.py                 # demo gauntlet
+adb reverse tcp:8000 tcp:8000
 ```
 
-Layout:
+## Architecture
 
-| Path | Role |
-|---|---|
-| `src/saafscan/calib.py` | card detection, perspective warp, white-balance |
-| `src/saafscan/roi.py` | strip detection, zone extraction |
-| `src/saafscan/color.py` | ΔE / Lab colour primitives (pure functions) |
-| `src/saafscan/classifier.py` | rules → `Verdict` (incl. `inconclusive`) |
-| `src/saafscan/verdict.py` | immutable `Verdict` model |
-| `src/saafscan/pipeline.py` | orchestration + `PipelineError` |
-| `src/saafscan/evidence.py` | append-only SQLite store (no update/delete API) |
-| `src/saafscan/report.py` | PDF + QR export |
-| `src/saafscan/synthetic.py` | deterministic synthetic demo scenes |
-| `src/saafscan/api.py` | FastAPI app + static SPA |
-| `frontend/` | single-page UI (camera, verdict, history, report) |
-| `tests/` | TDD suites incl. `test_e2e.py` demo gauntlet |
-| `screenshots/` | Round-1 deck images |
+```
+phone camera or upload
+  -> calibration card detection (black-bordered quad, perspective warp)
+  -> white-balance anchored on printed white/grey/black patches
+  -> strip detection (elongated bright quad, perspective warp)
+  -> reaction-zone extraction (control, starch, detergent)
+  -> deltaE against printed nominal references
+  -> classifier (ML primary, rule table always reachable)
+  -> verdict {adulterant, confidence, severity, advice, evidence}
+  -> append-only SQLite evidence log -> PDF + QR report
+```
 
-### Model training & evaluation (Phase 7)
+Failure modes are explicit and structured:
 
-The served classifier is **ML-primary** with the rule-table always reachable as
-fallback. Two candidates were trained on the same lighting-split dataset and
-compared on the **held-out-lighting** split (the manifest decides splits by
-lighting condition, never by random image):
+- **No calibration card** — rejected with HTTP 422 and a human-readable message. Never a fabricated verdict.
+- **Ambiguous zone colours** — verdict `inconclusive` with confidence at or below 0.5.
+- **Oversized, non-image or empty uploads** — HTTP 422 or 413, with no evidence entry created.
 
-| Model | Train command | Held-out acc | Coverage | Δ vs rules |
-|---|---|---|---|---|
-| **A — 12 colour/ΔE features → GBC (ships default)** | `scripts/train_features.py` | 1.000 | 0.800 | +0.000 |
-| B — ResNet18 finetune, AMP/CUDA | `scripts/train_cnn.py` | 1.000 | 0.800 | +0.000 |
+### Repository layout
 
-They tie on every measured metric (accuracy, coverage, confusion, full
-accuracy-vs-coverage curve); A wins the documented tie-breaks: abstention
-threshold **0.55 vs 0.999** (operating margin under real-phone shift),
-temperature **1.21 vs 0.81** (softening vs sharpening), and **179 KB vs 45 MB**
-artifacts. B stays servable behind `SAAFSCAN_ML_MODEL=cnn`.
+```
+src/saafscan/
+  calib.py        card detection, perspective warp, white-balance
+  roi.py          strip detection and zone extraction
+  color.py        Lab and deltaE primitives
+  classifier.py   rule table -> Verdict
+  verdict.py      immutable Verdict model
+  pipeline.py     orchestration and PipelineError
+  evidence.py     append-only SQLite store
+  report.py       PDF and QR export
+  api.py          FastAPI application and static frontend
+  ingest.py       photograph -> canonical crop -> manifest row
+  synthetic.py    deterministic synthetic demo scenes
+  ml/             training, calibration, runtime, evaluation
+tests/            TDD suites, including the demo gauntlet
+scripts/          dataset rendering and model training
+deck/             presentation build, verification gate and charts
+assets/           generated print targets and reference artwork
+frontend/         single-page interface
+docs/             documentation index
+```
+
+## Working with real strips
+
+Synthetic scenes exist so the interface, pipeline, latency and screenshots could be built before consumables arrived. They are a rehearsal path, not the demonstration.
+
+Photographs are named by session and label — `S001_none_0.jpg` — and ingested into a trainable dataset:
 
 ```bash
-.venv/bin/python scripts/train_features.py                  # Model A (+ dataset render, CPU ~15 s)
-python scripts/train_cnn.py                                 # Model B (needs torch+CUDA; --cpu works)
-.venv/bin/python -m saafscan.ml.eval --dataset data/trainset \
-    --models models --out models/eval_report.json           # both models vs the rule-table baseline
-
-SAAFSCAN_ML_MODEL=cnn .venv/bin/pytest                       # serve Model B instead
-SAAFSCAN_CLASSIFIER=rules .venv/bin/pytest                   # pure rule-table fallback
+.venv/bin/python -m saafscan.ingest photos/ --dataset data/realset
+.venv/bin/python scripts/train_features.py --dataset data/realset
 ```
 
-`data/trainset/` (51 MB) and `models/cnn.onnx` (45 MB) are gitignored as
-regenerable — first Model B run needs `uv pip install --target .mltools onnx`
-(for the export gate). Temperature scaling, the abstention threshold (low
-confidence → `inconclusive`, never a fabricated verdict) and every held-out
-number come from `saafscan.ml.calibration`, shared by both trainers, so the
-delta is computed by identical code.
+**Splits are decided by session, never by photograph.** All frames from one sitting go to one split. Assigning forty photographs of a single desk lamp across train and test would score beautifully and mean nothing.
 
-## Diagnosing a rejected photograph
+Three generated print artefacts support the shoot, each verified through the same detectors the live path runs:
 
-`analyze()` stops at the first failure with one sentence — correct for a user,
-useless when a real strip photo is rejected. `saafscan.diagnostics` runs every
-stage it can and records what each one saw:
+| Artefact | Command | Purpose |
+|---|---|---|
+| Strip template | `python -m saafscan.printstrip --out strip_template.png` | Sixteen strips per A4. Red box is a printed reference; leave it dry. |
+| Backdrop | `python -m saafscan.printbackdrop --out backdrop.png` | Flat grey 110. `--check photo.jpg` refuses a sheet outside the 50–170 luma band. |
+| Frame guide | `python -m saafscan.layoutguide --out layout_guide.png` | True-scale worked example; the CLI re-detects its own output and fails if the pipeline would reject it. |
+
+When a photograph is rejected, `saafscan.diagnostics` runs every stage it can and records what each one saw:
 
 ```bash
 .venv/bin/python -m saafscan.diagnostics photo.jpg --out debug/
 ```
 
-Exit code `0` if the photo analysed, `1` if it was rejected. `debug/` gets an
-annotated copy: the detected card and strip quads outlined, and a panel listing
-every measurement.
+## Contributing
 
-```
-ok    image    640x480 px RGB
-ok    card     calibration card detected
-        white_de                 4.43     <- printed card accuracy
-ok    strip    reagent strip detected
-ok    zones    reaction-zone colours measured
-        starch_de               98.73     <- reacted zone vs unreacted nominal
-FAIL  strip    no elongated bright quad passed the strip gates
-skip  zones    not run (a previous stage failed)
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions follow test-driven development with an 80% coverage floor, conventional commits and ruff-clean source.
 
-Read it like this:
+## Security
 
-- **`card` fails** — the printed card is wrong, too small, or the photo is not of
-  a SaafScan scene. Re-print on matte paper, get closer, more even light.
-- **`white_de`/`grey_de`/`black_de` large** — the printed card's own patches are
-  off nominal, so white-balance is anchoring on a bad reference. Re-print.
-- **`strip` fails with the card found** — the strip is out of frame, too dark,
-  or sitting on a bright surface so its contrast over the background is lost.
-- **`zones` ΔE values** — a reacted zone should sit *far* from its unreacted
-  nominal (starch reading ~99 above is the blue-black complex, which is
-  expected). A zone hovering just above zero is the failure to worry about: the
-  chemistry did not visibly react.
+See [SECURITY.md](SECURITY.md). Report vulnerabilities privately through GitHub security advisories. No personal data leaves the machine and there is no telemetry.
 
-## Turning a shoot into training data
+## Support
 
-Round 1 said the model would be retrained on real strips before the final.
-`synthetic.build_dataset` can only render synthetic scenes; `ml.train` reads
-`manifest.json` + `.npy` crops and never asks where a crop came from. `ingest`
-is the piece in between: photograph → canonical crop → manifest row.
+See [SUPPORT.md](SUPPORT.md). There is no service-level agreement at this stage.
 
-Name the shots `SESSION_LABEL_N` and point it at the folder:
+## Code of conduct
 
-```bash
-photos/S001_none_0.jpg
-photos/S001_starch_1.jpg
-photos/S002_detergent_0.jpg
-
-.venv/bin/python -m saafscan.ingest photos/ --dataset data/realset
-# 3 taken in, 0 refused, 0 already present -> 3 samples
-```
-
-Each shot is warped to the same `STRIP_SIZE` crop and white-balanced through
-the printed card, so training features come from the identical chain the
-request path uses. A shot the detector cannot use is reported with the stage
-that gave up — `card` or `strip` — never silently dropped, so a bad frame is
-caught while you are still standing at the bench.
-
-**Split is decided by session, not by photograph.** All frames from one sitting
-go to one split, the same way the synthetic set splits by lighting condition.
-Splitting 40 photos of a single desk lamp across train and test would score
-beautifully and mean nothing.
-
-Train on it the same way as synthetic:
-
-```bash
-.venv/bin/python scripts/train_features.py --dataset data/realset
-```
-
-`ml.train` refuses a training split missing any of the five classes, so a
-partial shoot fails loudly rather than producing a model that maps argmax to
-the wrong labels.
-
-## Physical kit for 24 Oct
-
-> ⚠️ **Synthetic demo mode is for Round-1 screenshots and dry-run rehearsal only.**
-> The **24 Oct final at PCCOE must run on real reagent strips** with real samples.
-> The synthetic path exists so the UI, pipeline, latency and screenshots can be built and
-> rehearsed before the consumables arrive — it is **not** the demo.
-
-Procurement list (non-code items the live demo needs):
-
-| # | Item | Purpose | Notes |
-|---|---|---|---|
-| 1 | **Iodine solution** (tincture/Lugol's, dilute) | starch test — blue-black complex | pharmacy / lab supplier; keep away from eyes; carry in a sealed small bottle |
-| 2 | **Methylene blue** solution | detergent test — decolourisation | lab chemical supplier; small quantity only |
-| 3 | **Strips / paper material** (filter paper or chromatography paper, cut to strip size) | reagent carrier | cut **20 × 80 mm (4:1)** — the detector's aspect gate is 2.5–9.0 and `STRIP_SIZE` is 360×90, so 4:1 matches the trained geometry; 8×80 is aspect 10 and is rejected. **Print `assets/strip_template.png` at 100% to get sixteen at a time**, each with a printed red control reference plus two dotted reagent boxes — leave the red box dry. Lay the strip **lengthways, long edge left-to-right**: a strip laid end-to-end down the frame is refused rather than misread. ~20 strips for the day |
-| 4 | **Printed colour calibration card** | white-balance + ΔE reference | print on matte photo paper, never glossy (glare breaks detection); ≥2 spares. **Which way up it lies no longer matters** — detection checks all four rotations, so a judge can pick it up and put it down at any angle |
-| 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 24 Oct in labelled cups; bring iodine/starch control |
-| 6 | **Second phone (backup)** | camera failure fallback | pre-tested with the app before leaving |
-| 7 | **Mid-grey shooting backdrop** (printed sheet, or a grey cloth that measures in range) | card + strip detection | **Print `assets/backdrop.png`** — flat grey 110, the centre of the measured band. Surface luma must land in **50–170 after white-balance**: below 50 the card's black frame merges into the background; above 170 the white strip merges into it. Light kraft/tan paper reads ~190 once the colour cast is corrected and fails — this range was measured through the pipeline, not guessed. **Verify the print**: `python -m saafscan.printbackdrop --check photo.jpg` reports the measured luma and refuses a sheet outside the band, so a sheet from an unfamiliar printer is checked rather than assumed |
-| 8 | Extra: zip bags, dropper/pipette, gloves, printed verdict QR card, power bank | logistics | demo hygiene + 3-hour buffer |
-
-**Also carry:** a recorded demo video as fallback, laptop with `.venv` pre-built (offline),
-and a printed one-page verdict sample for judges who don't scan QR.
-
-**Shooting plan (18–19 Oct).** Photograph all five classes — plain milk, milk +
-starch, milk + detergent, both, and one deliberately under-reacted strip for
-`inconclusive` — across at least three lighting setups (desk lamp, window
-light, corridor/flash). Each setup is its own session: `S001`, `S002`, `S003`.
-Five to eight frames per class per session is enough to retire the synthetic
-disclaimer in the deck: *"trained on N real strip photographs across M lighting
-conditions, held out by session."* Rehearse the shoot on a blank paper strip
-first, with `diagnostics` open, so the first real reagent frames are not also
-the first time the pipeline sees your room.
-
-**Where each sample must land — do not do this by eye.** Generate the template:
-
-    python -m saafscan.printstrip --out strip_template.png
-
-`assets/strip_template.png` already contains it: sixteen strips per A4. The
-**red box is a printed reference patch — leave it dry.** Only the two dotted
-boxes take reagent, one each. Print at **100 % / actual size** with "fit to page"
-off, cut on the outlines, then dip the whole strip. One sheet is a whole day of
-samples.
-
-The surface all of it is photographed on is generated the same way:
-
-    python -m saafscan.printbackdrop --out backdrop.png
-
-`assets/backdrop.png` is a flat A4 of grey 110, the centre of the measured band.
-Print scale is irrelevant — a flat colour carries no geometry — but the *value*
-your printer actually lays down is not, so photograph the sheet and measure it:
-
-    python -m saafscan.printbackdrop --check your_photo.jpg
-
-That reads the surface after white-balance, the way the 50–170 band was defined,
-and exits non-zero telling you which direction to reprint if it lands outside.
-Normal print quality on matte stock: a heavy-ink pass bands and streaks, and
-gloss glares. Anything flat that measures in range works — the check, not the
-material, is what makes it usable.
-
-**How to compose the frame — see it before the first shot, not from a rejected
-one:**
-
-    python -m saafscan.layoutguide --out layout_guide.png
-
-`assets/layout_guide.png` is a worked example at true scale: card upper-left,
-strip lower and **horizontal**, grey all round, with the five rules the
-detectors actually enforce printed on it. It is generated through the same
-`detect_card` and `detect_strip` the live demo runs, and the CLI re-detects its
-own output, exiting non-zero if the pipeline would reject it — so it is an
-example that works rather than one that looks like it should. That is also
-where rule 2 comes from: a strip stood on end is *refused*, never misread.
-
-The strip is read as three equal thirds — 0–26.7, 26.7–53.3 and 53.3–80 mm on an
-80 mm strip — and each third is sampled only across its **middle 55 %**, so the
-measurement bands are 5.8–20.7, 32.7–47.3 and 59.3–74.0 mm. The printed squares
-sit 0.5 mm *proud* of those bands, which is the whole point: reagent inside a
-square is guaranteed to cover the window, while no ink falls inside it to bias
-the mean colour the verdict is computed from. `saafscan.printstrip` derives them
-from `roi.zone_window_mm`, so the artwork cannot drift away from the detector.
-
-The red box is the exception, and is filled solid because there the ink *is* the
-measurement. It carries `ZONE_NOMINAL["control"]` — the exact colour
-`classify_zones` measures the control band against — so the reference is present
-on every strip by construction. Loading it by hand is what `photo4.jpeg` priced:
-with no control mark the window read blank paper, ΔE 79.8 against nominal, and
-the strip was refused before its chemistry was ever considered. Printing it also
-means no reagent is spent on the one zone that never reacts.
-
-Colour placed at 10 / 25 / 42 mm reads back **one zone shifted**: the marking
-meant for the detergent zone falls inside the starch band, and the detergent
-band reads untouched paper — which is indistinguishable from a fully
-decolourised, i.e. reacted, zone. This is what `photo5.jpeg` did: colouring only
-the left half of the strip made the rule table report `both` at 0.71 from a
-strip that had no detergent on it. Blank paper in a loaded zone cannot be told
-apart from a positive, so zone placement is an operator responsibility, not
-something the pipeline can detect.
-
-## Security & privacy
-
-- No personal data leaves the machine; telemetry: none.
-- Evidence store is local SQLite, append-only (no update/delete API by design).
-- Uploads are size- and type-validated at the boundary; failures return structured errors
-  (no stack traces to clients).
+Participants are expected to read and follow [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT (prototype; not a certified food-safety device — see DISCLAIMER below).
+Licensed under the [Apache License 2.0](LICENSE).
 
-**DISCLAIMER:** SaafScan is a student prototype for educational demonstration. It is not a
-certified diagnostic or food-testing device. Do not use it as the sole basis for consuming
-or discarding food.
+---
+
+**Disclaimer.** SaafScan is a student prototype built for educational demonstration. It is not a certified diagnostic or food-testing device, and its readings are screening signals rather than legal or laboratory test results. Do not use it as the sole basis for consuming or discarding food.
