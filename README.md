@@ -209,7 +209,7 @@ Procurement list (non-code items the live demo needs):
 | 4 | **Printed colour calibration card** | white-balance + ΔE reference | print on matte photo paper, never glossy (glare breaks detection); ≥2 spares. **Which way up it lies no longer matters** — detection checks all four rotations, so a judge can pick it up and put it down at any angle |
 | 5 | **Samples**: pure milk, milk + starch (known amount), milk + detergent, + one venue beverage | judge-picks demo | prepare fresh on 24 Oct in labelled cups; bring iodine/starch control |
 | 6 | **Second phone (backup)** | camera failure fallback | pre-tested with the app before leaving |
-| 7 | **Mid-grey shooting backdrop** (grey cloth, grey T-shirt, charcoal/olive notebook) | card + strip detection | Surface luma must land in **50–170 after white-balance**. Below 50 the card's black frame merges into the background; above 170 the white strip merges into it. Light kraft/tan paper reads ~190 once the colour cast is corrected and fails — this range was measured through the pipeline, not guessed. Bring one to the venue rather than hoping PCCOE has a suitable table |
+| 7 | **Mid-grey shooting backdrop** (printed sheet, or a grey cloth that measures in range) | card + strip detection | **Print `assets/backdrop.png`** — flat grey 110, the centre of the measured band. Surface luma must land in **50–170 after white-balance**: below 50 the card's black frame merges into the background; above 170 the white strip merges into it. Light kraft/tan paper reads ~190 once the colour cast is corrected and fails — this range was measured through the pipeline, not guessed. **Verify the print**: `python -m saafscan.printbackdrop --check photo.jpg` reports the measured luma and refuses a sheet outside the band, so a sheet from an unfamiliar printer is checked rather than assumed |
 | 8 | Extra: zip bags, dropper/pipette, gloves, printed verdict QR card, power bank | logistics | demo hygiene + 3-hour buffer |
 
 **Also carry:** a recorded demo video as fallback, laptop with `.venv` pre-built (offline),
@@ -234,6 +234,22 @@ the first time the pipeline sees your room.
 boxes take reagent, one each. Print at **100 % / actual size** with "fit to page"
 off, cut on the outlines, then dip the whole strip. One sheet is a whole day of
 samples.
+
+The surface all of it is photographed on is generated the same way:
+
+    python -m saafscan.printbackdrop --out backdrop.png
+
+`assets/backdrop.png` is a flat A4 of grey 110, the centre of the measured band.
+Print scale is irrelevant — a flat colour carries no geometry — but the *value*
+your printer actually lays down is not, so photograph the sheet and measure it:
+
+    python -m saafscan.printbackdrop --check your_photo.jpg
+
+That reads the surface after white-balance, the way the 50–170 band was defined,
+and exits non-zero telling you which direction to reprint if it lands outside.
+Normal print quality on matte stock: a heavy-ink pass bands and streaks, and
+gloss glares. Anything flat that measures in range works — the check, not the
+material, is what makes it usable.
 
 The strip is read as three equal thirds — 0–26.7, 26.7–53.3 and 53.3–80 mm on an
 80 mm strip — and each third is sampled only across its **middle 55 %**, so the
