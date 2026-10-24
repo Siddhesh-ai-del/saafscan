@@ -111,7 +111,10 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* mirrored preview */
+  /* No mirror. grabFrame() draws the raw video frame, so a mirrored preview
+     would show the opposite of what capture saves. Zone order is positional
+     (control/start/detergent, left to right), so the preview must match the
+     bytes: left on screen is left in the analysis. */
 }
 
 /* corner reticles */
